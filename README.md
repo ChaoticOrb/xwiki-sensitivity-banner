@@ -6,7 +6,7 @@ Adds a banner to the top of pages and blog posts showing Owner, Security and Cou
 
     mvn package
 
-This produces `target/xwiki-sensitivity-banner-0.1.0-SNAPSHOT.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 16.10.2). Set it to your XWiki version.
+This produces `target/xwiki-sensitivity-banner-0.1.0-SNAPSHOT.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
 
 ## Install
 

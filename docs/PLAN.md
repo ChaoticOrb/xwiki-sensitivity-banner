@@ -42,7 +42,7 @@ All pages live in the `SensitivityBanner` space (hidden).
 
 ## Not verified yet (needs a test on your instance)
 
-1. Which XWiki version you run. The project pins a version in `pom.xml` (`xwiki.version`). Pages use `xwiki/2.1` syntax and `{{html clean="false"}}`, which are old and stable, but the packaging plugin must match your major version.
+1. Version: the test instance runs XWiki 17.4, and the project pins 17.4.0 in `pom.xml` (`xwiki.version`). Running on the latest release has not been tested. Pages use `xwiki/2.1` syntax and `{{html clean="false"}}`, which are old and stable, but the packaging plugin must match your major version.
 2. That `XWiki.ConfigurableClass` with only `configurationClass` set (no `codeToExecute`) renders the form as expected.
 3. That UIX objects without an embedded `<class>` block import cleanly (class definitions are present on the instance).
 4. Rights: wiki-scoped UIX pages run Velocity under the author of the UIX page, so the installing user needs script and admin rights. Normal for an XAR installed through Extension Manager as admin.
