@@ -23,3 +23,5 @@ Under Administration, Content, the Sensitivity Banner section also controls whet
 The Sensitivity Report section lists every page with values in a sortable, filterable table, pages that are missing sensitivity, and stored values that are no longer in the configured lists.
 
 Reinstalling the XAR resets the banner settings to their defaults, so note them first.
+
+See `docs/DATA-SAFETY.md` for how stored values are protected and what to check before upgrading, and `tools/README.md` for the pre-release checks.

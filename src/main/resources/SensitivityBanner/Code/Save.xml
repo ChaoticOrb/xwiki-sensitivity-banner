@@ -20,6 +20,13 @@
 
 {{velocity}}
 #set ($sbTarget = $xwiki.getDocument("$!request.target"))
+## Only fields that were really posted are touched. A missing field is never treated as "clear it".
+#set ($sbPostedFields = [])
+#foreach ($sbField in $sbFields)
+  #if ($request.getParameterMap().containsKey($sbField))
+    #set ($discard = $sbPostedFields.add($sbField))
+  #end
+#end
 #if ($request.getMethod() != 'POST')
   $response.sendError(405, 'POST required')
   $xcontext.setFinished(true)
@@ -28,6 +35,9 @@
   $xcontext.setFinished(true)
 #elseif ($sbTarget.isNew() || !$sbTarget.hasAccessLevel('edit'))
   $response.sendError(403, 'Edit right required on an existing page')
+  $xcontext.setFinished(true)
+#elseif ($sbPostedFields.isEmpty())
+  $response.sendError(400, 'No sensitivity fields posted, nothing changed')
   $xcontext.setFinished(true)
 #else
   #set ($sbValid = true)
@@ -51,7 +61,7 @@
     $xcontext.setFinished(true)
   #else
     #set ($sbSaveObj = $sbTarget.getObject($sbClassName, true))
-    #foreach ($sbField in $sbFields)
+    #foreach ($sbField in $sbPostedFields)
       #set ($sbNew = "$!request.get($sbField)")
       #set ($discard = $sbSaveObj.set($sbField, $sbNew.trim()))
     #end
