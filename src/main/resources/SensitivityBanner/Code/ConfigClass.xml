@@ -1,0 +1,63 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.ConfigClass" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>ConfigClass</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Banner Configuration Class</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content></content>
+  <class>
+    <name>SensitivityBanner.Code.ConfigClass</name>
+    <customClass/><customMapping/><defaultViewSheet/><defaultEditSheet/><defaultWeb/><nameField/><validationScript/>
+    <enabled>
+      <customDisplay/><defaultValue>1</defaultValue><disabled>0</disabled><displayFormType>checkbox</displayFormType><displayType>yesno</displayType>
+      <name>enabled</name><number>1</number><prettyName>Enable banner</prettyName><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+    </enabled>
+    <missingText>
+      <customDisplay/><disabled>0</disabled><name>missingText</name><number>2</number><picker>0</picker>
+      <prettyName>Text shown when nothing is selected</prettyName><size>40</size><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+    </missingText>
+    <ownerValues>
+      <contenttype>PureText</contenttype><customDisplay/><disabled>0</disabled><editor>PureText</editor><defaultValue>Management
+Senior Management
+Standard Staff</defaultValue><hint/>
+      <name>ownerValues</name><number>3</number><picker>0</picker><prettyName>Owner values (one per line, optional |#colour)</prettyName><rows>6</rows><size>60</size>
+      <unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+    </ownerValues>
+    <securityValues>
+      <contenttype>PureText</contenttype><customDisplay/><disabled>0</disabled><editor>PureText</editor><defaultValue>Sensitive|#c0392b
+Open|#2e7d32</defaultValue><hint/>
+      <name>securityValues</name><number>4</number><picker>0</picker><prettyName>Security values (one per line, optional |#colour)</prettyName><rows>6</rows><size>60</size>
+      <unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+    </securityValues>
+    <countryValues>
+      <contenttype>PureText</contenttype><customDisplay/><disabled>0</disabled><editor>PureText</editor><defaultValue>UK
+Europe</defaultValue><hint/>
+      <name>countryValues</name><number>5</number><picker>0</picker><prettyName>Country values (one per line, optional |#colour)</prettyName><rows>6</rows><size>60</size>
+      <unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+    </countryValues>
+    <excludedSpaces>
+      <contenttype>PureText</contenttype><customDisplay/><disabled>0</disabled><editor>PureText</editor><defaultValue>XWiki
+SensitivityBanner</defaultValue><hint/>
+      <name>excludedSpaces</name><number>6</number><picker>0</picker><prettyName>Excluded top level spaces (one per line)</prettyName><rows>4</rows><size>60</size>
+      <unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+    </excludedSpaces>
+  </class>
+</xwikidoc>

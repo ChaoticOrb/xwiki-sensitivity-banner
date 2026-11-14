@@ -1,0 +1,97 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.BannerUIX" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>BannerUIX</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Banner UIX</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#if ($sbEnabled &amp;&amp; !$doc.isNew() &amp;&amp; !$sbExcluded)
+  #set ($sbObj = $doc.getObject($sbClassName))
+  #set ($sbChips = [])
+  #foreach ($sbField in $sbFields)
+    #set ($sbValue = '')
+    #if ($sbObj)
+      #set ($sbValue = "$!sbObj.getValue($sbField)".trim())
+    #end
+    #if ($sbValue != '')
+      #set ($sbColour = '#455a64')
+      #foreach ($sbOpt in $sbOptions.get($sbField))
+        #if ($sbOpt.label == $sbValue &amp;&amp; $sbOpt.colour != '')
+          #set ($sbColour = $sbOpt.colour)
+        #end
+      #end
+      #set ($discard = $sbChips.add({'text': "$sbLabels.get($sbField): $sbValue", 'colour': $sbColour}))
+    #end
+  #end
+{{html clean="false"}}
+&lt;div class="sensitivity-banner" role="note" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0;padding:8px 12px;border:1px solid #cfd8dc;border-radius:4px;background:#fafafa;font-size:0.9em;"&gt;
+#if ($sbChips.isEmpty())
+  &lt;span style="padding:2px 10px;border-radius:12px;background:#f9a825;color:#000;font-weight:600;"&gt;$escapetool.xml($sbMissingText)&lt;/span&gt;
+#else
+  #foreach ($sbChip in $sbChips)
+  &lt;span style="padding:2px 10px;border-radius:12px;background:$sbChip.colour;color:#fff;font-weight:600;"&gt;$escapetool.xml($sbChip.text)&lt;/span&gt;
+  #end
+#end
+&lt;/div&gt;
+{{/html}}
+#end
+{{/velocity}}</content>
+  <object>
+    <name>SensitivityBanner.Code.BannerUIX</name>
+    <number>0</number>
+    <className>XWiki.UIExtensionClass</className>
+    <guid>ab8d947c-e3cb-559a-a3f1-2913354be6d6</guid>
+    <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#if ($sbEnabled &amp;&amp; !$doc.isNew() &amp;&amp; !$sbExcluded)
+  #set ($sbObj = $doc.getObject($sbClassName))
+  #set ($sbChips = [])
+  #foreach ($sbField in $sbFields)
+    #set ($sbValue = '')
+    #if ($sbObj)
+      #set ($sbValue = "$!sbObj.getValue($sbField)".trim())
+    #end
+    #if ($sbValue != '')
+      #set ($sbColour = '#455a64')
+      #foreach ($sbOpt in $sbOptions.get($sbField))
+        #if ($sbOpt.label == $sbValue &amp;&amp; $sbOpt.colour != '')
+          #set ($sbColour = $sbOpt.colour)
+        #end
+      #end
+      #set ($discard = $sbChips.add({'text': "$sbLabels.get($sbField): $sbValue", 'colour': $sbColour}))
+    #end
+  #end
+{{html clean="false"}}
+&lt;div class="sensitivity-banner" role="note" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0;padding:8px 12px;border:1px solid #cfd8dc;border-radius:4px;background:#fafafa;font-size:0.9em;"&gt;
+#if ($sbChips.isEmpty())
+  &lt;span style="padding:2px 10px;border-radius:12px;background:#f9a825;color:#000;font-weight:600;"&gt;$escapetool.xml($sbMissingText)&lt;/span&gt;
+#else
+  #foreach ($sbChip in $sbChips)
+  &lt;span style="padding:2px 10px;border-radius:12px;background:$sbChip.colour;color:#fff;font-weight:600;"&gt;$escapetool.xml($sbChip.text)&lt;/span&gt;
+  #end
+#end
+&lt;/div&gt;
+{{/html}}
+#end
+{{/velocity}}</content>
+    <extensionPointId>org.xwiki.platform.template.content.header.after</extensionPointId>
+    <name>org.xwiki.contrib.sensitivitybanner.banner</name>
+    <parameters>order=10</parameters>
+    <scope>wiki</scope>
+  </object>
+</xwikidoc>

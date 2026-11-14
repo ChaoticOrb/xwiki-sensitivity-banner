@@ -1,0 +1,23 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.WebHome" locale="">
+  <web>SensitivityBanner</web>
+  <name>WebHome</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Banner</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>false</hidden>
+  <content>{{velocity}}
+Adds a sensitivity banner (Owner, Security, Country) to page headers. Configure the values in //Administration &gt; Sensitivity Banner//.
+Set a page's values from the **Sensitivity** tab at the bottom of any page.
+{{/velocity}}</content>
+</xwikidoc>

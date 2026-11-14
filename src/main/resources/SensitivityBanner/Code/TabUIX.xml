@@ -1,0 +1,106 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.TabUIX" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>TabUIX</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Tab UIX</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#set ($sbObj = $doc.getObject($sbClassName))
+#set ($sbCanEdit = $hasEdit)
+{{html clean="false"}}
+&lt;form method="post" class="xform" action="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.Save', 'get'))"&gt;
+  &lt;input type="hidden" name="form_token" value="$!escapetool.xml($services.csrf.token)" /&gt;
+  &lt;input type="hidden" name="target" value="$escapetool.xml($services.model.serialize($doc.documentReference, 'default'))" /&gt;
+  #foreach ($sbField in $sbFields)
+    #set ($sbCurrent = '')
+    #if ($sbObj)
+      #set ($sbCurrent = "$!sbObj.getValue($sbField)".trim())
+    #end
+    #set ($sbKnown = false)
+    &lt;p&gt;
+      &lt;label for="sb_$sbField"&gt;&lt;strong&gt;$escapetool.xml($sbLabels.get($sbField))&lt;/strong&gt;&lt;/label&gt;&lt;br/&gt;
+      &lt;select id="sb_$sbField" name="$sbField" #if (!$sbCanEdit)disabled="disabled"#end&gt;
+        &lt;option value=""&gt;-- not set --&lt;/option&gt;
+        #foreach ($sbOpt in $sbOptions.get($sbField))
+          #if ($sbOpt.label == $sbCurrent)#set ($sbKnown = true)#end
+          &lt;option value="$escapetool.xml($sbOpt.label)" #if ($sbOpt.label == $sbCurrent)selected="selected"#end&gt;$escapetool.xml($sbOpt.label)&lt;/option&gt;
+        #end
+        #if ($sbCurrent != '' &amp;&amp; !$sbKnown)
+          &lt;option value="$escapetool.xml($sbCurrent)" selected="selected"&gt;$escapetool.xml($sbCurrent) (retired)&lt;/option&gt;
+        #end
+      &lt;/select&gt;
+    &lt;/p&gt;
+  #end
+  #if ($sbCanEdit)
+    &lt;p&gt;&lt;input type="submit" class="button" value="Save sensitivity" /&gt;&lt;/p&gt;
+  #else
+    &lt;p class="text-muted"&gt;You need edit rights on this page to change its sensitivity.&lt;/p&gt;
+  #end
+&lt;/form&gt;
+{{/html}}
+{{/velocity}}</content>
+  <object>
+    <name>SensitivityBanner.Code.TabUIX</name>
+    <number>0</number>
+    <className>XWiki.UIExtensionClass</className>
+    <guid>e962de54-c0d5-5f11-b864-08eb386323a0</guid>
+    <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#set ($sbObj = $doc.getObject($sbClassName))
+#set ($sbCanEdit = $hasEdit)
+{{html clean="false"}}
+&lt;form method="post" class="xform" action="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.Save', 'get'))"&gt;
+  &lt;input type="hidden" name="form_token" value="$!escapetool.xml($services.csrf.token)" /&gt;
+  &lt;input type="hidden" name="target" value="$escapetool.xml($services.model.serialize($doc.documentReference, 'default'))" /&gt;
+  #foreach ($sbField in $sbFields)
+    #set ($sbCurrent = '')
+    #if ($sbObj)
+      #set ($sbCurrent = "$!sbObj.getValue($sbField)".trim())
+    #end
+    #set ($sbKnown = false)
+    &lt;p&gt;
+      &lt;label for="sb_$sbField"&gt;&lt;strong&gt;$escapetool.xml($sbLabels.get($sbField))&lt;/strong&gt;&lt;/label&gt;&lt;br/&gt;
+      &lt;select id="sb_$sbField" name="$sbField" #if (!$sbCanEdit)disabled="disabled"#end&gt;
+        &lt;option value=""&gt;-- not set --&lt;/option&gt;
+        #foreach ($sbOpt in $sbOptions.get($sbField))
+          #if ($sbOpt.label == $sbCurrent)#set ($sbKnown = true)#end
+          &lt;option value="$escapetool.xml($sbOpt.label)" #if ($sbOpt.label == $sbCurrent)selected="selected"#end&gt;$escapetool.xml($sbOpt.label)&lt;/option&gt;
+        #end
+        #if ($sbCurrent != '' &amp;&amp; !$sbKnown)
+          &lt;option value="$escapetool.xml($sbCurrent)" selected="selected"&gt;$escapetool.xml($sbCurrent) (retired)&lt;/option&gt;
+        #end
+      &lt;/select&gt;
+    &lt;/p&gt;
+  #end
+  #if ($sbCanEdit)
+    &lt;p&gt;&lt;input type="submit" class="button" value="Save sensitivity" /&gt;&lt;/p&gt;
+  #else
+    &lt;p class="text-muted"&gt;You need edit rights on this page to change its sensitivity.&lt;/p&gt;
+  #end
+&lt;/form&gt;
+{{/html}}
+{{/velocity}}</content>
+    <extensionPointId>org.xwiki.plaftorm.template.docextra</extensionPointId>
+    <name>org.xwiki.contrib.sensitivitybanner.tab</name>
+    <parameters>show=true
+title=Sensitivity
+name=sensitivity
+order=500</parameters>
+    <scope>wiki</scope>
+  </object>
+</xwikidoc>
