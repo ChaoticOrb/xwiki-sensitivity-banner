@@ -1,0 +1,58 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.BackupChunk" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>BackupChunk</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Backup Handler</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity wiki="false"}}
+#if ($xcontext.action == 'get' &amp;&amp; "$!request.outputSyntax" == 'plain')
+  #set ($discard = $response.setContentType('application/json'))
+  #if (!$xwiki.hasAdminRights())
+    #set ($discard = $response.setStatus(403))
+    $jsontool.serialize({'error': 'Administration rights required'})
+  #else
+    #set ($bkOffset = 0)
+    #set ($bkOffsetText = "$!request.offset")
+    #if ($bkOffsetText.matches('^[0-9]{1,9}$'))
+      #set ($bkOffset = $numbertool.toNumber($request.offset).intValue())
+    #end
+    #set ($bkLimit = 500)
+    #set ($bkLimitText = "$!request.limit")
+    #if ($bkLimitText.matches('^[0-9]{1,4}$'))
+      #set ($bkLimit = $mathtool.min($numbertool.toNumber($request.limit).intValue(), 1000))
+    #end
+    #set ($bkStatement = "from doc.object($sbClassName) as obj where obj.owner &lt;&gt; '' or obj.security &lt;&gt; '' or obj.country &lt;&gt; '' order by doc.fullName")
+    #set ($bkTotal = $services.query.xwql($bkStatement).setLimit(1000000).execute().size())
+    #set ($bkNames = $services.query.xwql($bkStatement).setLimit($bkLimit).setOffset($bkOffset).execute())
+    #set ($bkRows = [])
+    #foreach ($bkName in $bkNames)
+      #set ($bkDoc = $xwiki.getDocument($bkName))
+      #set ($bkObj = $bkDoc.getObject($sbClassName))
+      #if ($bkObj)
+        #set ($bkRow = {'page': $bkName})
+        #foreach ($bkField in $sbFields)
+          #set ($bkValue = "$!bkObj.getValue($bkField)")
+          #set ($discard = $bkRow.put($bkField, $bkValue.trim()))
+        #end
+        #set ($discard = $bkRows.add($bkRow))
+      #end
+    #end
+    $jsontool.serialize({'total': $bkTotal, 'offset': $bkOffset, 'wiki': "$xcontext.database", 'rows': $bkRows})
+  #end
+#end
+{{/velocity}}</content>
+</xwikidoc>

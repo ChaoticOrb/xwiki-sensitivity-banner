@@ -1,0 +1,39 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.SensitivityClass" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>SensitivityClass</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Class</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>Stores the Owner, Security and Country selected for a page.</content>
+  <class>
+    <name>SensitivityBanner.Code.SensitivityClass</name>
+    <customClass/><customMapping/><defaultViewSheet/><defaultEditSheet/><defaultWeb/><nameField/><validationScript/>
+    <owner>
+      <customDisplay/><disabled>0</disabled><name>owner</name><number>1</number><picker>0</picker>
+      <prettyName>Owner</prettyName><size>30</size><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+    </owner>
+    <security>
+      <customDisplay/><disabled>0</disabled><name>security</name><number>2</number><picker>0</picker>
+      <prettyName>Security</prettyName><size>30</size><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+    </security>
+    <country>
+      <customDisplay/><disabled>0</disabled><name>country</name><number>3</number><picker>0</picker>
+      <prettyName>Country</prettyName><size>30</size><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+    </country>
+  </class>
+</xwikidoc>

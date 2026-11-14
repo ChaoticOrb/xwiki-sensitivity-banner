@@ -1,0 +1,123 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.ReportSheet" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>ReportSheet</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Report Sheet</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#set ($rpClass = 'SensitivityBanner.Code.SensitivityClass')
+#set ($rpLimit = 50000)
+## Pages with at least one value (a partial XWQL query returns document names).
+#set ($rpWithValue = $services.query.xwql("from doc.object($rpClass) as obj where obj.owner &lt;&gt; '' or obj.security &lt;&gt; '' or obj.country &lt;&gt; ''").setLimit($rpLimit).execute())
+#set ($rpHave = {})
+#foreach ($rpName in $rpWithValue)
+  #set ($discard = $rpHave.put($rpName, true))
+#end
+## Candidate pages, narrowed the same way the banner is.
+#if ($sbExcludeTerminal)
+  #set ($rpStmt = "where doc.translation = 0 and doc.name = 'WebHome' order by doc.fullName")
+#else
+  #set ($rpStmt = "where doc.translation = 0 order by doc.fullName")
+#end
+#set ($rpCandidates = $services.query.xwql($rpStmt).setLimit($rpLimit).execute())
+## Application Within Minutes application pages, when the banner skips them.
+#set ($rpApps = {})
+#if ($sbExcludeApps &amp;&amp; $xwiki.exists('AppWithinMinutes.LiveTableClass'))
+  #foreach ($rpName in $services.query.xwql("from doc.object(AppWithinMinutes.LiveTableClass) as obj").setLimit($rpLimit).execute())
+    #set ($discard = $rpApps.put($rpName, true))
+  #end
+#end
+#set ($rpMissing = [])
+#foreach ($rpName in $rpCandidates)
+  #if (!$rpHave.containsKey($rpName) &amp;&amp; !$rpApps.containsKey($rpName))
+    #set ($rpParts = $rpName.split('\.'))
+    #set ($rpTop = $rpParts[0])
+    #if (!$sbExcludedList.contains($rpTop))
+      #set ($discard = $rpMissing.add($rpName))
+    #end
+  #end
+#end
+## Values that are no longer in the configured lists.
+#set ($rpRetired = [])
+#foreach ($rpName in $rpWithValue)
+  #if ($foreach.count &lt;= 1000)
+    #set ($rpObj = $xwiki.getDocument($rpName).getObject($rpClass))
+    #if ($rpObj)
+      #foreach ($rpField in $sbFields)
+        #set ($rpVal = "$!rpObj.getValue($rpField)")
+        #set ($rpVal = $rpVal.trim())
+        #if ($rpVal != '')
+          #set ($rpOk = false)
+          #foreach ($rpOpt in $sbOptions.get($rpField))
+            #if ($rpOpt.label == $rpVal)
+              #set ($rpOk = true)
+            #end
+          #end
+          #if (!$rpOk)
+            #set ($discard = $rpRetired.add({'page': $rpName, 'field': $sbLabels.get($rpField), 'value': $rpVal}))
+          #end
+        #end
+      #end
+    #end
+  #end
+#end
+== Summary ==
+
+* Pages with at least one value: **$rpHave.size()#if ($rpWithValue.size() &gt;= $rpLimit) or more#end**
+* Pages missing sensitivity: **$rpMissing.size()#if ($rpCandidates.size() &gt;= $rpLimit) or more#end**
+* Values no longer in the configured lists: **$rpRetired.size()**
+
+The missing list follows the same rules as the banner: excluded spaces, terminal pages and Application Within Minutes pages are left out if those settings are on. #if ($rpCandidates.size() &gt;= $rpLimit || $rpWithValue.size() &gt;= $rpLimit)**This wiki has $rpLimit or more matching pages, so the counts and lists below are cut off. The table below is not capped, and its footer should show the exact number of entries.**#end
+
+== Pages with sensitivity values ==
+
+{{liveData
+  id='sensitivity-pages'
+  source='liveTable'
+  sourceParameters='className=SensitivityBanner.Code.SensitivityClass'
+  properties='doc.location,owner,security,country,doc.date,doc.author'
+  sort='doc.name:asc'}}{{/liveData}}
+
+== Pages missing sensitivity ==
+
+#if ($rpMissing.isEmpty())
+Every page the banner applies to has a value.
+#else
+|=Page
+#foreach ($rpName in $rpMissing)
+#if ($foreach.count &lt;= 500)
+|[[$services.rendering.escape($rpName, 'xwiki/2.1')&gt;&gt;doc:$services.rendering.escape($rpName, 'xwiki/2.1')]]
+#end
+#end
+#if ($rpMissing.size() &gt; 500)
+
+Showing the first 500 of $rpMissing.size().
+#end
+#end
+
+== Values no longer in the configured lists ==
+
+#if ($rpRetired.isEmpty())
+None.
+#else
+|=Page|=Field|=Stored value
+#foreach ($rpItem in $rpRetired)
+|[[$services.rendering.escape($rpItem.page, 'xwiki/2.1')&gt;&gt;doc:$services.rendering.escape($rpItem.page, 'xwiki/2.1')]]|$services.rendering.escape($rpItem.field, 'xwiki/2.1')|$services.rendering.escape($rpItem.value, 'xwiki/2.1')
+#end
+#end
+{{/velocity}}</content>
+</xwikidoc>

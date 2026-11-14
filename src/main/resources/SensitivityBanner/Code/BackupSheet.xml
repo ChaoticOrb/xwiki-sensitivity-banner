@@ -1,0 +1,213 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.BackupSheet" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>BackupSheet</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Backup Sheet</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+== Create a backup ==
+
+Downloads one JSON file with the page name, Owner, Security and Country of every page that has a value. Keep a copy outside the wiki, for example alongside your Proxmox Backup Server backups. Reading is done in chunks, so large wikis are fine.
+
+{{html clean="false"}}
+&lt;div id="sb-backup"
+  data-backup-url="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.BackupChunk', 'get', 'outputSyntax=plain'))"
+  data-restore-url="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.RestoreChunk', 'get', 'outputSyntax=plain'))"
+  data-token="$!escapetool.xml($services.csrf.token)"&gt;
+  &lt;p&gt;&lt;button type="button" class="btn btn-primary" id="sb-create"&gt;Download backup&lt;/button&gt;&lt;/p&gt;
+&lt;/div&gt;
+{{/html}}
+
+== Restore from a backup ==
+
+Choose a backup file and run a dry run first. A dry run changes nothing and reports what a restore would do. The restore buttons stay disabled until a dry run of the same file has completed.
+
+* **Restore blanks only** fills pages that currently have no values. It never changes a page that already has values.
+* **Restore and overwrite differences** also replaces values that differ from the backup. Use it only after reading the dry run.
+
+Every restored page gets a normal page version with the comment "Restored sensitivity from backup", so a restore can be undone from page history. A backup row with no values is ignored, so a restore never blanks a page.
+
+{{html clean="false"}}
+&lt;div id="sb-restore"&gt;
+  &lt;p&gt;&lt;input type="file" id="sb-file" accept=".json,application/json" /&gt;&lt;/p&gt;
+  &lt;p&gt;
+    &lt;button type="button" class="btn btn-default" id="sb-dry"&gt;Dry run&lt;/button&gt;
+    &lt;button type="button" class="btn btn-warning" id="sb-fill" disabled="disabled"&gt;Restore blanks only&lt;/button&gt;
+    &lt;button type="button" class="btn btn-danger" id="sb-over" disabled="disabled"&gt;Restore and overwrite differences&lt;/button&gt;
+  &lt;/p&gt;
+  &lt;p id="sb-status" role="status"&gt;&lt;/p&gt;
+  &lt;pre id="sb-result" style="max-height:20em;overflow:auto;"&gt;&lt;/pre&gt;
+&lt;/div&gt;
+{{/html}}
+{{/velocity}}
+
+{{html clean="false"}}
+&lt;script&gt;
+(function () {
+  var root = document.getElementById('sb-backup');
+  if (!root) { return; }
+  var urlBackup = root.getAttribute('data-backup-url');
+  var urlRestore = root.getAttribute('data-restore-url');
+  var token = root.getAttribute('data-token');
+  var CHUNK = 500;
+  var RESTORE_CHUNK = 100;
+  var statusEl = document.getElementById('sb-status');
+  var resultEl = document.getElementById('sb-result');
+  var fileEl = document.getElementById('sb-file');
+  var btnDry = document.getElementById('sb-dry');
+  var btnFill = document.getElementById('sb-fill');
+  var btnOver = document.getElementById('sb-over');
+  var btnCreate = document.getElementById('sb-create');
+  var loaded = null;
+  var dryRunKey = null;
+  var busy = false;
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  function fileKey(file) { return file.name + '|' + file.size + '|' + file.lastModified; }
+
+  function updateButtons() {
+    var ok = !busy &amp;&amp; loaded !== null &amp;&amp; dryRunKey === loaded.key;
+    btnFill.disabled = !ok;
+    btnOver.disabled = !ok;
+    btnDry.disabled = busy || loaded === null;
+    btnCreate.disabled = busy;
+  }
+
+  async function createBackup() {
+    busy = true; updateButtons(); resultEl.textContent = '';
+    try {
+      var rows = [];
+      var offset = 0;
+      var total = null;
+      var wiki = '';
+      while (total === null || offset &lt; total) {
+        var res = await fetch(urlBackup + '&amp;offset=' + offset + '&amp;limit=' + CHUNK, { credentials: 'same-origin' });
+        if (!res.ok) { throw new Error('Backup request failed with HTTP ' + res.status); }
+        var data = await res.json();
+        if (!data.rows) { throw new Error(data.error || 'Unexpected response'); }
+        total = data.total;
+        wiki = data.wiki;
+        for (var i = 0; i &lt; data.rows.length; i++) { rows.push(data.rows[i]); }
+        offset += CHUNK;
+        setStatus('Read ' + Math.min(offset, total) + ' of ' + total + ' pages');
+      }
+      var warn = rows.length !== total ? ' Warning: expected ' + total + ' rows but read ' + rows.length + '. Pages may have changed during the backup, run it again.' : '';
+      var payload = { format: 1, extension: 'sensitivity-banner', wiki: wiki, created: new Date().toISOString(), count: rows.length, rows: rows };
+      var blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sensitivity-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setStatus('Backup downloaded with ' + rows.length + ' pages.' + warn);
+    } catch (e) {
+      setStatus('Backup failed: ' + e.message);
+    }
+    busy = false; updateButtons();
+  }
+
+  function readFile(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result)); };
+      reader.onerror = function () { reject(new Error('Could not read the file')); };
+      reader.readAsText(file);
+    });
+  }
+
+  async function loadSelected() {
+    loaded = null; updateButtons(); resultEl.textContent = '';
+    var file = fileEl.files[0];
+    if (!file) { setStatus(''); return; }
+    try {
+      var parsed = JSON.parse(await readFile(file));
+      if (parsed.format !== 1 || parsed.extension !== 'sensitivity-banner' || !Array.isArray(parsed.rows)) {
+        throw new Error('This is not a Sensitivity Banner backup file (format 1)');
+      }
+      loaded = { rows: parsed.rows, key: fileKey(file), wiki: parsed.wiki, created: parsed.created };
+      setStatus('Loaded ' + parsed.rows.length + ' rows from a backup created ' + parsed.created + '. Run a dry run next.');
+    } catch (e) {
+      setStatus('Could not use that file: ' + e.message);
+    }
+    updateButtons();
+  }
+
+  async function run(mode) {
+    if (!loaded) { return; }
+    busy = true; updateButtons(); resultEl.textContent = '';
+    var totals = { same: 0, restore: 0, differs: 0, missing: 0, invalid: 0, norights: 0, applied: 0 };
+    var problems = [];
+    try {
+      for (var i = 0; i &lt; loaded.rows.length; i += RESTORE_CHUNK) {
+        var chunk = loaded.rows.slice(i, i + RESTORE_CHUNK);
+        var body = new URLSearchParams();
+        body.set('form_token', token);
+        body.set('mode', mode);
+        body.set('rows', JSON.stringify(chunk));
+        var res = await fetch(urlRestore, { method: 'POST', body: body, credentials: 'same-origin' });
+        var data = await res.json();
+        if (!res.ok || !data.counts) { throw new Error(data.error || ('HTTP ' + res.status)); }
+        for (var k in totals) { totals[k] += data.counts[k] || 0; }
+        for (var j = 0; j &lt; data.problems.length &amp;&amp; problems.length &lt; 200; j++) { problems.push(data.problems[j]); }
+        setStatus((mode === 'dryrun' ? 'Dry run: ' : 'Restoring: ') + Math.min(i + RESTORE_CHUNK, loaded.rows.length) + ' of ' + loaded.rows.length + ' rows');
+      }
+      var lines = [
+        (mode === 'dryrun' ? 'DRY RUN, nothing was changed' : 'RESTORE FINISHED, mode: ' + mode),
+        'Rows in file: ' + loaded.rows.length,
+        'Already identical: ' + totals.same,
+        'Pages with no values now, would be filled: ' + totals.restore,
+        'Pages whose values differ from the backup: ' + totals.differs,
+        'Page no longer exists: ' + totals.missing,
+        'No edit rights: ' + totals.norights,
+        'Invalid rows ignored: ' + totals.invalid,
+        'Pages changed by this run: ' + totals.applied
+      ];
+      if (problems.length) {
+        lines.push('', 'Details (first ' + problems.length + '):');
+        for (var p = 0; p &lt; problems.length; p++) { lines.push(problems[p].result + ': ' + problems[p].page); }
+      }
+      resultEl.textContent = lines.join('\n');
+      if (mode === 'dryrun') {
+        dryRunKey = loaded.key;
+        setStatus('Dry run complete. The restore buttons are now enabled for this file.');
+      } else {
+        setStatus('Restore complete. Run a dry run again to see what is left.');
+        dryRunKey = null;
+      }
+    } catch (e) {
+      setStatus('Failed: ' + e.message + '. Some pages may already have been restored. Run a dry run to see the current state.');
+      dryRunKey = null;
+    }
+    busy = false; updateButtons();
+  }
+
+  btnCreate.addEventListener('click', createBackup);
+  fileEl.addEventListener('change', loadSelected);
+  btnDry.addEventListener('click', function () { run('dryrun'); });
+  btnFill.addEventListener('click', function () {
+    if (window.confirm('Fill pages that currently have no values from this backup?')) { run('fill'); }
+  });
+  btnOver.addEventListener('click', function () {
+    if (window.confirm('Overwrite page values that differ from this backup? This changes pages that currently have values.')) { run('overwrite'); }
+  });
+  updateButtons();
+})();
+&lt;/script&gt;
+{{/html}}</content>
+</xwikidoc>

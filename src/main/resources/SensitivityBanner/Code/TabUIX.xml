@@ -1,0 +1,202 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.TabUIX" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>TabUIX</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Tab UIX</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>UI extension that adds the Sensitivity tab to the bottom tab bar.</content>
+  <object>
+    <name>SensitivityBanner.Code.TabUIX</name>
+    <number>0</number>
+    <className>XWiki.UIExtensionClass</className>
+    <guid>e962de54-c0d5-5f11-b864-08eb386323a0</guid>
+    <class>
+      <name>XWiki.UIExtensionClass</name>
+      <customClass/>
+      <customMapping/>
+      <defaultViewSheet/>
+      <defaultEditSheet/>
+      <defaultWeb/>
+      <nameField/>
+      <validationScript/>
+      <async_cached>
+        <defaultValue>0</defaultValue>
+        <disabled>0</disabled>
+        <displayFormType>select</displayFormType>
+        <displayType/>
+        <name>async_cached</name>
+        <number>3</number>
+        <prettyName>Cached</prettyName>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+      </async_cached>
+      <async_context>
+        <cache>0</cache>
+        <disabled>0</disabled>
+        <displayType>select</displayType>
+        <multiSelect>1</multiSelect>
+        <name>async_context</name>
+        <number>4</number>
+        <prettyName>Context elements</prettyName>
+        <relationalStorage>0</relationalStorage>
+        <separator> </separator>
+        <separators>|, </separators>
+        <size>5</size>
+        <unmodifiable>0</unmodifiable>
+        <values>doc.reference=Document|icon.theme=Icon theme|locale=Language|request.base=Request base URL|request.parameters=Request parameters|request.url=Request URL|request.wiki=Request wiki|user=User|wiki=Wiki</values>
+        <classType>com.xpn.xwiki.objects.classes.StaticListClass</classType>
+      </async_context>
+      <async_enabled>
+        <defaultValue>0</defaultValue>
+        <disabled>0</disabled>
+        <displayFormType>select</displayFormType>
+        <displayType/>
+        <name>async_enabled</name>
+        <number>2</number>
+        <prettyName>Asynchronous rendering</prettyName>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+      </async_enabled>
+      <content>
+        <disabled>0</disabled>
+        <editor>Text</editor>
+        <name>content</name>
+        <number>1</number>
+        <prettyName>Executed Content</prettyName>
+        <rows>25</rows>
+        <size>120</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+      </content>
+      <extensionPointId>
+        <disabled>0</disabled>
+        <name>extensionPointId</name>
+        <number>5</number>
+        <prettyName>Extension Point ID</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </extensionPointId>
+      <name>
+        <disabled>0</disabled>
+        <name>name</name>
+        <number>6</number>
+        <prettyName>Extension ID</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </name>
+      <parameters>
+        <contenttype>PureText</contenttype>
+        <disabled>0</disabled>
+        <editor>PureText</editor>
+        <name>parameters</name>
+        <number>7</number>
+        <prettyName>Extension Parameters</prettyName>
+        <rows>10</rows>
+        <size>40</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+      </parameters>
+      <scope>
+        <cache>0</cache>
+        <disabled>0</disabled>
+        <displayType>select</displayType>
+        <multiSelect>0</multiSelect>
+        <name>scope</name>
+        <number>8</number>
+        <prettyName>Extension Scope</prettyName>
+        <relationalStorage>0</relationalStorage>
+        <separator> </separator>
+        <separators>|, </separators>
+        <size>1</size>
+        <unmodifiable>0</unmodifiable>
+        <values>wiki=Current Wiki|user=Current User|global=Global</values>
+        <classType>com.xpn.xwiki.objects.classes.StaticListClass</classType>
+      </scope>
+    </class>
+    <property>
+      <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#set ($sbObj = $doc.getObject($sbClassName))
+#set ($sbCanEdit = $hasEdit)
+{{html clean="false"}}
+&lt;form method="post" class="xform" action="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.Save', 'get'))"&gt;
+  &lt;input type="hidden" name="form_token" value="$!escapetool.xml($services.csrf.token)" /&gt;
+  &lt;input type="hidden" name="target" value="$escapetool.xml($services.model.serialize($doc.documentReference, 'default'))" /&gt;
+  #foreach ($sbField in $sbFields)
+    #set ($sbCurrent = '')
+    #if ($sbObj)
+      #set ($sbCurrent = "$!sbObj.getValue($sbField)")
+#set ($sbCurrent = $sbCurrent.trim())
+    #end
+    #set ($sbKnown = false)
+    &lt;p&gt;
+      &lt;label for="sb_$sbField"&gt;&lt;strong&gt;$escapetool.xml($sbLabels.get($sbField))&lt;/strong&gt;&lt;/label&gt;&lt;br/&gt;
+      &lt;select id="sb_$sbField" name="$sbField" #if (!$sbCanEdit)disabled="disabled"#end&gt;
+        &lt;option value=""&gt;-- not set --&lt;/option&gt;
+        #foreach ($sbOpt in $sbOptions.get($sbField))
+          #if ($sbOpt.label == $sbCurrent)#set ($sbKnown = true)#end
+          &lt;option value="$escapetool.xml($sbOpt.label)" #if ($sbOpt.label == $sbCurrent)selected="selected"#end&gt;$escapetool.xml($sbOpt.label)&lt;/option&gt;
+        #end
+        #if ($sbCurrent != '' &amp;&amp; !$sbKnown)
+          &lt;option value="$escapetool.xml($sbCurrent)" selected="selected"&gt;$escapetool.xml($sbCurrent) (retired)&lt;/option&gt;
+        #end
+      &lt;/select&gt;
+    &lt;/p&gt;
+  #end
+  #if ($sbCanEdit)
+    &lt;p&gt;&lt;input type="submit" class="button" value="Save sensitivity" /&gt;&lt;/p&gt;
+  #else
+    &lt;p class="text-muted"&gt;You need edit rights on this page to change its sensitivity.&lt;/p&gt;
+  #end
+&lt;/form&gt;
+#if ($sbCanEdit &amp;&amp; !$sbHasValue)
+  #sbFindHistory($doc)
+  #if (!$sbHist.isEmpty())
+  &lt;form method="post" class="xform" action="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.Save', 'get'))"&gt;
+    &lt;input type="hidden" name="form_token" value="$!escapetool.xml($services.csrf.token)" /&gt;
+    &lt;input type="hidden" name="target" value="$escapetool.xml($services.model.serialize($doc.documentReference, 'default'))" /&gt;
+    &lt;input type="hidden" name="restoreHistory" value="1" /&gt;
+    &lt;p&gt;An earlier version of this page (&lt;strong&gt;$escapetool.xml($sbHistRev)&lt;/strong&gt;) had:
+    #foreach ($sbF in $sbFields)
+      $escapetool.xml($sbLabels.get($sbF)): &lt;strong&gt;#if ($sbHist.get($sbF) != '')$escapetool.xml($sbHist.get($sbF))#{else}not set#end&lt;/strong&gt;#if ($foreach.hasNext), #end
+    #end
+    &lt;/p&gt;
+    &lt;p&gt;&lt;input type="submit" class="button" value="Restore these values" /&gt;&lt;/p&gt;
+  &lt;/form&gt;
+  #end
+#end
+{{/html}}
+{{/velocity}}</content>
+    </property>
+    <property>
+      <extensionPointId>org.xwiki.plaftorm.template.docextra</extensionPointId>
+    </property>
+    <property>
+      <name>org.xwiki.contrib.sensitivitybanner.tab</name>
+    </property>
+    <property>
+      <parameters>show=true
+title=Sensitivity
+name=sensitivity
+order=500</parameters>
+    </property>
+    <property>
+      <scope>wiki</scope>
+    </property>
+  </object>
+</xwikidoc>

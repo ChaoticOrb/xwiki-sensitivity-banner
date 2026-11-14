@@ -1,0 +1,103 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.Save" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>Save</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Save Handler</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+#set ($sbTarget = $xwiki.getDocument("$!request.target"))
+## Only fields that were really posted are touched. A missing field is never treated as "clear it".
+#set ($sbPostedFields = [])
+#foreach ($sbField in $sbFields)
+  #if ($request.getParameterMap().containsKey($sbField))
+    #set ($discard = $sbPostedFields.add($sbField))
+  #end
+#end
+#if ($request.getMethod() != 'POST')
+  $response.sendError(405, 'POST required')
+  $xcontext.setFinished(true)
+#elseif (!$services.csrf.isTokenValid($request.form_token))
+  $response.sendError(403, 'Invalid form token')
+  $xcontext.setFinished(true)
+#elseif ($sbTarget.isNew() || !$sbTarget.hasAccessLevel('edit'))
+  $response.sendError(403, 'Edit right required on an existing page')
+  $xcontext.setFinished(true)
+#elseif ("$!request.restoreHistory" == '1')
+  ## Values are re-read from page history here. Posted values are never trusted for a restore.
+  #sbFindHistory($sbTarget)
+  #set ($sbCurObj = $sbTarget.getObject($sbClassName))
+  #set ($sbCurHas = false)
+  #if ($sbCurObj)
+    #foreach ($sbF in $sbFields)
+      #set ($sbCurV = "$!sbCurObj.getValue($sbF)")
+      #set ($sbCurV = $sbCurV.trim())
+      #if ($sbCurV != '')
+        #set ($sbCurHas = true)
+      #end
+    #end
+  #end
+  #if ($sbHist.isEmpty())
+    $response.sendError(404, 'No earlier values found in page history')
+    $xcontext.setFinished(true)
+  #elseif ($sbCurHas)
+    $response.sendError(409, 'This page already has values, nothing restored')
+    $xcontext.setFinished(true)
+  #else
+    #set ($sbRestoreObj = $sbTarget.getObject($sbClassName, true))
+    #foreach ($sbF in $sbFields)
+      #set ($discard = $sbRestoreObj.set($sbF, $sbHist.get($sbF)))
+    #end
+    #set ($discard = $sbTarget.save("Restored sensitivity from version $sbHistRev", true))
+    $response.sendRedirect($sbTarget.getURL('view'))
+    $xcontext.setFinished(true)
+  #end
+#elseif ($sbPostedFields.isEmpty())
+  $response.sendError(400, 'No sensitivity fields posted, nothing changed')
+  $xcontext.setFinished(true)
+#else
+  #set ($sbValid = true)
+  #foreach ($sbField in $sbFields)
+    #set ($sbPosted = "$!request.get($sbField)")
+#set ($sbPosted = $sbPosted.trim())
+    #if ($sbPosted != '')
+      #set ($sbFound = false)
+      #foreach ($sbOpt in $sbOptions.get($sbField))
+        #if ($sbOpt.label == $sbPosted)#set ($sbFound = true)#end
+      #end
+      ## Keep an existing retired value unchanged, reject anything else not in the configured list.
+      #set ($sbExisting = $sbTarget.getObject($sbClassName))
+      #if (!$sbFound &amp;&amp; !($sbExisting &amp;&amp; "$!sbExisting.getValue($sbField)" == $sbPosted))
+        #set ($sbValid = false)
+      #end
+    #end
+  #end
+  #if (!$sbValid)
+    $response.sendError(400, 'Value not in configured list')
+    $xcontext.setFinished(true)
+  #else
+    #set ($sbSaveObj = $sbTarget.getObject($sbClassName, true))
+    #foreach ($sbField in $sbPostedFields)
+      #set ($sbNew = "$!request.get($sbField)")
+      #set ($discard = $sbSaveObj.set($sbField, $sbNew.trim()))
+    #end
+    #set ($discard = $sbTarget.save('Updated sensitivity', true))
+    $response.sendRedirect($sbTarget.getURL('view'))
+    $xcontext.setFinished(true)
+  #end
+#end
+{{/velocity}}</content>
+</xwikidoc>

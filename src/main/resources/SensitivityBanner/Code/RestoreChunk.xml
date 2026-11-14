@@ -1,0 +1,123 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.RestoreChunk" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>RestoreChunk</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Restore Handler</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity wiki="false"}}
+#if ($xcontext.action == 'get' &amp;&amp; "$!request.outputSyntax" == 'plain')
+  #set ($discard = $response.setContentType('application/json'))
+  #set ($rsMode = "$!request.mode")
+  #set ($rsModes = ['dryrun', 'fill', 'overwrite'])
+  #if (!$xwiki.hasAdminRights())
+    #set ($discard = $response.setStatus(403))
+    $jsontool.serialize({'error': 'Administration rights required'})
+  #elseif ($request.getMethod() != 'POST')
+    #set ($discard = $response.setStatus(405))
+    $jsontool.serialize({'error': 'POST required'})
+  #elseif (!$services.csrf.isTokenValid($request.form_token))
+    #set ($discard = $response.setStatus(403))
+    $jsontool.serialize({'error': 'Invalid form token. Reload the page and try again.'})
+  #elseif (!$rsModes.contains($rsMode))
+    #set ($discard = $response.setStatus(400))
+    $jsontool.serialize({'error': 'Unknown mode'})
+  #else
+    #set ($rsRows = $jsontool.fromString($request.rows))
+    #if (!$rsRows || $rsRows.size() &gt; 200)
+      #set ($discard = $response.setStatus(400))
+      $jsontool.serialize({'error': 'Expected a list of at most 200 rows'})
+    #else
+      #set ($rsCounts = {'same': 0, 'restore': 0, 'differs': 0, 'missing': 0, 'invalid': 0, 'norights': 0, 'applied': 0})
+      #set ($rsProblems = [])
+      #foreach ($rsRow in $rsRows)
+        #set ($rsPage = "$!rsRow.get('page')")
+        #set ($rsVals = {})
+        #set ($rsBad = false)
+        #set ($rsAnyVal = false)
+        #if ($rsPage == '' || $rsPage.length() &gt; 500)
+          #set ($rsBad = true)
+        #end
+        #foreach ($rsF in $sbFields)
+          #set ($rsV = "$!rsRow.get($rsF)")
+          #set ($rsV = $rsV.trim())
+          #if ($rsV.length() &gt; 200 || $rsV.matches('.*[\p{Cntrl}].*'))
+            #set ($rsBad = true)
+          #end
+          #if ($rsV != '')
+            #set ($rsAnyVal = true)
+          #end
+          #set ($discard = $rsVals.put($rsF, $rsV))
+        #end
+        ## A backup row with no values at all is never applied, so a restore can not blank a page.
+        #if (!$rsAnyVal)
+          #set ($rsBad = true)
+        #end
+        #set ($rsOutcome = 'invalid')
+        #if (!$rsBad)
+          #set ($rsRef = $services.model.resolveDocument($rsPage))
+          #if (!$xwiki.exists($rsRef))
+            #set ($rsOutcome = 'missing')
+          #else
+            #set ($rsDoc = $xwiki.getDocument($rsRef))
+            #set ($rsObj = $rsDoc.getObject($sbClassName))
+            #set ($rsCurHas = false)
+            #set ($rsSame = true)
+            #foreach ($rsF in $sbFields)
+              #set ($rsCur = '')
+              #if ($rsObj)
+                #set ($rsCur = "$!rsObj.getValue($rsF)")
+                #set ($rsCur = $rsCur.trim())
+              #end
+              #if ($rsCur != '')
+                #set ($rsCurHas = true)
+              #end
+              #if ($rsCur != $rsVals.get($rsF))
+                #set ($rsSame = false)
+              #end
+            #end
+            #if (!$rsDoc.hasAccessLevel('edit'))
+              #set ($rsOutcome = 'norights')
+            #elseif ($rsSame)
+              #set ($rsOutcome = 'same')
+            #elseif (!$rsCurHas)
+              #set ($rsOutcome = 'restore')
+            #else
+              #set ($rsOutcome = 'differs')
+            #end
+          #end
+        #end
+        #set ($discard = $rsCounts.put($rsOutcome, $mathtool.add($rsCounts.get($rsOutcome), 1)))
+        #set ($rsApply = ($rsMode == 'fill' &amp;&amp; $rsOutcome == 'restore') || ($rsMode == 'overwrite' &amp;&amp; ($rsOutcome == 'restore' || $rsOutcome == 'differs')))
+        #if ($rsApply)
+          #set ($rsSaveObj = $rsDoc.getObject($sbClassName, true))
+          #foreach ($rsF in $sbFields)
+            #set ($discard = $rsSaveObj.set($rsF, $rsVals.get($rsF)))
+          #end
+          #set ($discard = $rsDoc.save('Restored sensitivity from backup', true))
+          #set ($discard = $rsCounts.put('applied', $mathtool.add($rsCounts.get('applied'), 1)))
+        #elseif ($rsOutcome != 'same' &amp;&amp; $rsOutcome != 'restore' &amp;&amp; $rsProblems.size() &lt; 50)
+          #set ($discard = $rsProblems.add({'page': $rsPage, 'result': $rsOutcome}))
+        #elseif ($rsOutcome == 'differs' &amp;&amp; $rsProblems.size() &lt; 50)
+          #set ($discard = $rsProblems.add({'page': $rsPage, 'result': $rsOutcome}))
+        #end
+      #end
+      $jsontool.serialize({'mode': $rsMode, 'counts': $rsCounts, 'problems': $rsProblems})
+    #end
+  #end
+#end
+{{/velocity}}</content>
+</xwikidoc>

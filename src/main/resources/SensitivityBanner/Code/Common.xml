@@ -1,0 +1,151 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.Common" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>Common</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Banner Common</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{velocity output="false"}}
+## Shared setup. Defines: $sbEnabled, $sbMissingText, $sbFields, $sbLabels, $sbOptions, $sbExcluded, $sbClassName.
+#set ($sbClassName = 'SensitivityBanner.Code.SensitivityClass')
+#set ($sbConfigObj = $xwiki.getDocument('SensitivityBanner.Code.Admin').getObject('SensitivityBanner.Code.ConfigClass'))
+#set ($sbDefaults = {
+  'missingText': 'Page missing sensitivity',
+  'owner': "Management
+Senior Management
+Standard Staff",
+  'security': "Sensitive|#c0392b
+Open|#2e7d32",
+  'country': "UK
+Europe",
+  'excluded': "XWiki
+SensitivityBanner
+AppWithinMinutes"
+})
+## Enabled by default: only an explicit saved 0 disables it.
+#set ($sbEnabled = true)
+#if ($sbConfigObj)
+  #set ($sbEnabledValue = $sbConfigObj.getValue('enabled'))
+  #if ("$!sbEnabledValue" == '0')
+    #set ($sbEnabled = false)
+  #end
+#end
+#macro (sbConfigValue $prop $default)
+  #set ($sbOut = $default)
+  #if ($sbConfigObj)
+    #set ($sbTmp = "$!sbConfigObj.getValue($prop)")
+    #if ($sbTmp.trim() != '')
+      #set ($sbOut = $sbTmp)
+    #end
+  #end
+#end
+#sbConfigValue('missingText' $sbDefaults.missingText)
+#set ($sbMissingText = $sbOut)
+#set ($sbFields = ['owner', 'security', 'country'])
+#set ($sbLabels = {'owner': 'Owner', 'security': 'Security', 'country': 'Country'})
+#set ($sbPropNames = {'owner': 'ownerValues', 'security': 'securityValues', 'country': 'countryValues'})
+#set ($sbOptions = {})
+#foreach ($sbField in $sbFields)
+  #sbConfigValue($sbPropNames.get($sbField) $sbDefaults.get($sbField))
+  #set ($sbList = [])
+  #foreach ($sbLine in $sbOut.split('\r?\n'))
+    #set ($sbLine = $sbLine.trim())
+    #if ($sbLine != '')
+      #set ($sbParts = $sbLine.split('\|', 2))
+      #set ($sbLabel = $sbParts[0].trim())
+      #set ($sbColour = '')
+      #if ($sbParts.size() &gt; 1 &amp;&amp; $sbParts[1].trim().matches('^#[0-9a-fA-F]{3,8}$'))
+        #set ($sbColour = $sbParts[1].trim())
+      #end
+      #set ($discard = $sbList.add({'label': $sbLabel, 'colour': $sbColour}))
+    #end
+  #end
+  #set ($discard = $sbOptions.put($sbField, $sbList))
+#end
+#sbConfigValue('excludedSpaces' $sbDefaults.excluded)
+#set ($sbExcludedList = [])
+#foreach ($sbLine in $sbOut.split('\r?\n'))
+  #if ($sbLine.trim() != '')
+    #set ($discard = $sbExcludedList.add($sbLine.trim()))
+  #end
+#end
+#set ($sbExcluded = false)
+#if ($doc &amp;&amp; $doc.documentReference)
+  #set ($sbTopSpace = $doc.documentReference.spaceReferences.get(0).name)
+  #if ($sbExcludedList.contains($sbTopSpace))
+    #set ($sbExcluded = true)
+  #end
+#end
+## Terminal pages and Application Within Minutes application pages. On unless explicitly saved as 0.
+#set ($sbExcludeTerminal = true)
+#set ($sbExcludeApps = true)
+#if ($sbConfigObj)
+  #if ("$!sbConfigObj.getValue('excludeTerminal')" == '0')
+    #set ($sbExcludeTerminal = false)
+  #end
+  #if ("$!sbConfigObj.getValue('excludeApps')" == '0')
+    #set ($sbExcludeApps = false)
+  #end
+#end
+#if ($doc &amp;&amp; $doc.documentReference)
+  ## A terminal page is any page not named WebHome (the default home page name).
+  #if ($sbExcludeTerminal &amp;&amp; $doc.documentReference.name != 'WebHome')
+    #set ($sbExcluded = true)
+  #end
+  ## Application Within Minutes application home pages carry an AppWithinMinutes.LiveTableClass object.
+  #if ($sbExcludeApps &amp;&amp; $doc.getObject('AppWithinMinutes.LiveTableClass'))
+    #set ($sbExcluded = true)
+  #end
+#end
+## A page that already has a value keeps its banner even if it would otherwise be excluded.
+#set ($sbHasValue = false)
+#set ($sbCheckObj = $doc.getObject($sbClassName))
+#if ($sbCheckObj)
+  #foreach ($sbCheckField in $sbFields)
+    #set ($sbCheckValue = "$!sbCheckObj.getValue($sbCheckField)")
+    #if ($sbCheckValue.trim() != '')
+      #set ($sbHasValue = true)
+    #end
+  #end
+#end
+## Finds the newest earlier version of a page that had sensitivity values.
+## Sets $sbHist (map field to value, empty map if none) and $sbHistRev (version, empty if none).
+#macro (sbFindHistory $sbHistTarget)
+  #set ($sbHist = {})
+  #set ($sbHistRev = '')
+  #foreach ($sbRev in $sbHistTarget.getRecentRevisions(30))
+    #if ($sbHist.isEmpty())
+      #set ($sbOldDoc = $xwiki.getDocument($sbHistTarget, $sbRev))
+      #set ($sbOldObj = $sbOldDoc.getObject($sbClassName))
+      #if ($sbOldObj)
+        #set ($sbTmpHist = {})
+        #set ($sbAnyHist = false)
+        #foreach ($sbHistField in $sbFields)
+          #set ($sbHistValue = "$!sbOldObj.getValue($sbHistField)")
+          #set ($sbHistValue = $sbHistValue.trim())
+          #set ($discard = $sbTmpHist.put($sbHistField, $sbHistValue))
+          #if ($sbHistValue != '')
+            #set ($sbAnyHist = true)
+          #end
+        #end
+        #if ($sbAnyHist)
+          #set ($sbHist = $sbTmpHist)
+          #set ($sbHistRev = $sbRev)
+        #end
+      #end
+    #end
+  #end
+#end
+{{/velocity}}</content>
+</xwikidoc>
