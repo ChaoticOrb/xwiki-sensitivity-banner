@@ -1,6 +1,6 @@
 # XWiki Sensitivity Banner
 
-Adds a banner to the top of pages and blog posts showing Owner, Security and Country values chosen per page. Status: first draft, built but not yet tested on a live XWiki instance. See `docs/PLAN.md` for the design, what was verified against the XWiki source, and what still needs testing.
+Adds a banner to the top of pages and blog posts showing Owner, Security and Country values chosen per page. Status: working on XWiki 17.4 (tested by the author on one instance). Not tested on other versions. See `docs/PLAN.md` for the design, what was verified against the XWiki source, and what still needs testing.
 
 ## Build
 
@@ -17,3 +17,9 @@ Upload the XAR in Extension Manager (Administer Wiki, Extensions, Advanced Searc
 Open any page and pick values in the **Sensitivity** tab at the bottom (next to Comments, Attachments, History, Information). The banner shows under the page title. With nothing selected it shows "Page missing sensitivity".
 
 Edit the allowed values, the missing text and the excluded spaces under Administration, Sensitivity Banner. One value per line, optionally followed by a colour, for example `Sensitive|#c0392b`.
+
+Under Administration, Content, the Sensitivity Banner section also controls whether the banner is hidden on terminal pages (any page not named WebHome) and on Application Within Minutes application pages. A page that already has a value always shows its banner.
+
+The Sensitivity Report section lists every page with values in a sortable, filterable table, pages that are missing sensitivity, and stored values that are no longer in the configured lists.
+
+Reinstalling the XAR resets the banner settings to their defaults, so note them first.
