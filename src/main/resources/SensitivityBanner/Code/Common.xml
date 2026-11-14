@@ -30,7 +30,8 @@ Open|#2e7d32",
   'country': "UK
 Europe",
   'excluded': "XWiki
-SensitivityBanner"
+SensitivityBanner
+AppWithinMinutes"
 })
 ## Enabled by default: only an explicit saved 0 disables it.
 #set ($sbEnabled = true)
@@ -84,6 +85,38 @@ SensitivityBanner"
   #set ($sbTopSpace = $doc.documentReference.spaceReferences.get(0).name)
   #if ($sbExcludedList.contains($sbTopSpace))
     #set ($sbExcluded = true)
+  #end
+#end
+## Terminal pages and Application Within Minutes application pages. On unless explicitly saved as 0.
+#set ($sbExcludeTerminal = true)
+#set ($sbExcludeApps = true)
+#if ($sbConfigObj)
+  #if ("$!sbConfigObj.getValue('excludeTerminal')" == '0')
+    #set ($sbExcludeTerminal = false)
+  #end
+  #if ("$!sbConfigObj.getValue('excludeApps')" == '0')
+    #set ($sbExcludeApps = false)
+  #end
+#end
+#if ($doc &amp;&amp; $doc.documentReference)
+  ## A terminal page is any page not named WebHome (the default home page name).
+  #if ($sbExcludeTerminal &amp;&amp; $doc.documentReference.name != 'WebHome')
+    #set ($sbExcluded = true)
+  #end
+  ## Application Within Minutes application home pages carry an AppWithinMinutes.LiveTableClass object.
+  #if ($sbExcludeApps &amp;&amp; $doc.getObject('AppWithinMinutes.LiveTableClass'))
+    #set ($sbExcluded = true)
+  #end
+#end
+## A page that already has a value keeps its banner even if it would otherwise be excluded.
+#set ($sbHasValue = false)
+#set ($sbCheckObj = $doc.getObject($sbClassName))
+#if ($sbCheckObj)
+  #foreach ($sbCheckField in $sbFields)
+    #set ($sbCheckValue = "$!sbCheckObj.getValue($sbCheckField)")
+    #if ($sbCheckValue.trim() != '')
+      #set ($sbHasValue = true)
+    #end
   #end
 #end
 {{/velocity}}</content>

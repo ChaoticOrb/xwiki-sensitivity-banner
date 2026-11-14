@@ -131,7 +131,7 @@
       <content>{{include reference="SensitivityBanner.Code.Common" /}}
 
 {{velocity}}
-#if ($sbEnabled &amp;&amp; !$doc.isNew() &amp;&amp; !$sbExcluded)
+#if ($sbEnabled &amp;&amp; !$doc.isNew() &amp;&amp; (!$sbExcluded || $sbHasValue))
   #set ($sbObj = $doc.getObject($sbClassName))
   #set ($sbChips = [])
   #foreach ($sbField in $sbFields)

@@ -37,7 +37,10 @@ All pages live in the `SensitivityBanner` space (hidden).
 - Banner is on by default. The shipped settings object has `enabled=1`, and code defaults apply if the object is ever missing.
 - Reinstalling or upgrading the XAR overwrites `Code.Admin` and resets the settings to defaults. Note them before reinstalling.
 - Nothing selected shows the configured missing text (default "Page missing sensitivity"). Partly filled shows only the chosen values.
-- Spaces `XWiki` and `SensitivityBanner` are excluded by default (configurable). Non-existent pages never show it.
+- Spaces `XWiki`, `SensitivityBanner` and `AppWithinMinutes` are excluded by default (configurable). Non-existent pages never show it.
+- Two checkboxes, both on by default: hide on terminal pages (any page not named `WebHome`, assuming the default home page name), and hide on Application Within Minutes application pages (pages with an `AppWithinMinutes.LiveTableClass` object, which the platform's `CreateApplication.xml` uses as the application descriptor).
+- A page that already has a sensitivity value always shows its banner, even if excluded. The Sensitivity tab is not hidden on excluded pages.
+- Not verified: whether blog posts on the target wiki are terminal pages. If they are, the terminal checkbox hides the banner on posts without a value.
 - The stored value is the option text. Renaming an option in config leaves existing pages holding the old text. The banner still shows it, and the tab marks it as retired.
 - Save requires edit rights on the target page and a valid CSRF token, and rejects values not in the configured lists.
 

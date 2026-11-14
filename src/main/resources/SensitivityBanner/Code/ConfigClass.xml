@@ -54,5 +54,15 @@
       <unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
       <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
     </excludedSpaces>
+    <excludeTerminal>
+      <customDisplay/><defaultValue>1</defaultValue><disabled>0</disabled><displayFormType>checkbox</displayFormType><displayType>yesno</displayType>
+      <name>excludeTerminal</name><number>7</number><prettyName>Hide on terminal pages (any page not named WebHome)</prettyName><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+    </excludeTerminal>
+    <excludeApps>
+      <customDisplay/><defaultValue>1</defaultValue><disabled>0</disabled><displayFormType>checkbox</displayFormType><displayType>yesno</displayType>
+      <name>excludeApps</name><number>8</number><prettyName>Hide on Application Within Minutes application pages</prettyName><unmodifiable>0</unmodifiable><validationMessage/><validationRegExp/>
+      <classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+    </excludeApps>
   </class>
 </xwikidoc>
