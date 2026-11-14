@@ -6,7 +6,7 @@ Adds a banner to the top of pages and blog posts showing Owner, Security and Cou
 
     mvn package
 
-This produces `target/xwiki-sensitivity-banner-0.1.0-SNAPSHOT.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
+This produces `target/xwiki-sensitivity-banner-0.1.0.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
 
 ## Install
 
@@ -27,3 +27,7 @@ Reinstalling the XAR resets the banner settings to their defaults, so note them 
 The Sensitivity Backup section downloads a JSON backup of every page's values and restores from one, with a dry run first. The Sensitivity tab can restore values from an earlier page version when a rollback has removed them.
 
 See `docs/DATA-SAFETY.md` for how stored values are protected and what to check before upgrading, and `tools/README.md` for the pre-release checks.
+
+## Licence
+
+MIT. See `LICENSE`.
