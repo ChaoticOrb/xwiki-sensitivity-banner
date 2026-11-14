@@ -32,7 +32,8 @@
 #else
   #set ($sbValid = true)
   #foreach ($sbField in $sbFields)
-    #set ($sbPosted = "$!request.get($sbField)".trim())
+    #set ($sbPosted = "$!request.get($sbField)")
+#set ($sbPosted = $sbPosted.trim())
     #if ($sbPosted != '')
       #set ($sbFound = false)
       #foreach ($sbOpt in $sbOptions.get($sbField))
@@ -51,7 +52,8 @@
   #else
     #set ($sbSaveObj = $sbTarget.getObject($sbClassName, true))
     #foreach ($sbField in $sbFields)
-      #set ($discard = $sbSaveObj.set($sbField, "$!request.get($sbField)".trim()))
+      #set ($sbNew = "$!request.get($sbField)")
+      #set ($discard = $sbSaveObj.set($sbField, $sbNew.trim()))
     #end
     #set ($discard = $sbTarget.save('Updated sensitivity', true))
     $response.sendRedirect($sbTarget.getURL('view'))

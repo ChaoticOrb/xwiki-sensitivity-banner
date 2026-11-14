@@ -44,7 +44,7 @@ All pages live in the `SensitivityBanner` space (hidden).
 
 1. Version: the test instance runs XWiki 17.4, and the project pins 17.4.0 in `pom.xml` (`xwiki.version`). Running on the latest release has not been tested. Pages use `xwiki/2.1` syntax and `{{html clean="false"}}`, which are old and stable, but the packaging plugin must match your major version.
 2. That `XWiki.ConfigurableClass` with only `configurationClass` set (no `codeToExecute`) renders the form as expected.
-3. That UIX objects without an embedded `<class>` block import cleanly (class definitions are present on the instance).
+3. (Resolved) The first build wrote object fields without the `<property>` wrapper, so the UIX registrations were dropped on import and the tab never appeared. Objects now use the same structure as a working 17.4 XAR, with the class definitions embedded.
 4. Rights: wiki-scoped UIX pages run Velocity under the author of the UIX page, so the installing user needs script and admin rights. Normal for an XAR installed through Extension Manager as admin.
 5. Blog post pages. They are ordinary documents rendered by the same template, so the banner should appear. The Blog application's own space is not excluded. Not tested.
 
@@ -53,3 +53,9 @@ All pages live in the `SensitivityBanner` space (hidden).
 - Optional: show the banner in edit mode.
 - Optional: a page-picker listing pages missing sensitivity (HQL over `BaseObject`).
 - Optional: Java component replacing the Velocity handler if rights or performance become a problem.
+
+## Lessons from the first test on 17.4
+
+- Velocity cannot call a method on a string literal (`"$x".trim()` is a syntax error). Assign to a variable first.
+- Velocity in every page is now run through the Velocity 2.3 parser before building. Parsing proves syntax only, not behaviour on a live wiki.
+- UIX pages hold a short description as their own page content. The real template lives only in the UIX object, so viewing the UIX page directly no longer runs it.
