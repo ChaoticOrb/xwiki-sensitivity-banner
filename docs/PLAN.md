@@ -30,6 +30,7 @@ All pages live in the `SensitivityBanner` space (hidden).
 | `Code.BannerUIX` | UIX | Renders the banner at `content.header.after`. |
 | `Code.TabUIX` | UIX | Renders the Sensitivity tab with three dropdowns. |
 | `Code.Save` | Handler | Validates and saves the selections, then redirects back. |
+| `Code.ReportAdmin` and `Code.ReportSheet` | ConfigurableClass and sheet | "Sensitivity Report" admin section: a Live Data table of all pages with values, plus lists of pages missing sensitivity and of values no longer in the configured lists. |
 
 ## Behaviour
 
@@ -64,3 +65,10 @@ All pages live in the `SensitivityBanner` space (hidden).
 - Velocity in every page is now run through the Velocity 2.3 parser before building. Parsing proves syntax only, not behaviour on a live wiki.
 - UIX pages hold a short description as their own page content. The real template lives only in the UIX object, so viewing the UIX page directly no longer runs it.
 - The admin section first failed with "No object of class ... found in page SensitivityBanner.Code.Admin" because the settings object was not on that page. It now ships there with the defaults.
+
+## Report design notes
+
+- The table uses `{{liveData source='liveTable' sourceParameters='className=...'}}`, the same pattern the platform uses (`Release/WebHome.xml`, `Menu/WebHome.xml`). Rights filtering comes from the platform.
+- The missing and retired lists use partial XWQL (`from doc.object(Class) as obj where ...`) and are diffed in Velocity. Complete HQL statements for non-programming users depend on the instance's query validator configuration, so they are avoided.
+- Lists read at most 5000 matching pages per query, show at most 500 missing pages, and check at most 1000 pages for retired values. The page says when it hits the cap.
+- Not tested on a live wiki. The first things to check: the table renders, the missing list excludes the pages you expect, and a deliberately renamed option shows up under retired values.
