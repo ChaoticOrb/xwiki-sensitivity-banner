@@ -16,3 +16,10 @@ Parses every `{{velocity}}` block in the page XML with Velocity 2.3. It catches 
     (cd /tmp/vel && mvn -q dependency:copy-dependencies -DoutputDirectory=lib)
     javac -cp "/tmp/vel/lib/*" -d /tmp/vel tools/ParseCheck.java
     java -cp "/tmp/vel:/tmp/vel/lib/*" ParseCheck $(find src -name '*.xml')
+
+## Backup page browser test
+
+    mkdir -p /tmp/sbtest && python3 tools/make-backup-harness.py /tmp/sbtest
+    node tools/backup-ui-test.js /tmp/sbtest
+
+Runs the script of the Sensitivity Backup admin section in Chromium against a mocked server. It checks chunked reading, the backup file, the dry run gate before any restore, and the confirmation dialogs. It does not test the Velocity handlers.

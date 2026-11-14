@@ -36,6 +36,35 @@
 #elseif ($sbTarget.isNew() || !$sbTarget.hasAccessLevel('edit'))
   $response.sendError(403, 'Edit right required on an existing page')
   $xcontext.setFinished(true)
+#elseif ("$!request.restoreHistory" == '1')
+  ## Values are re-read from page history here. Posted values are never trusted for a restore.
+  #sbFindHistory($sbTarget)
+  #set ($sbCurObj = $sbTarget.getObject($sbClassName))
+  #set ($sbCurHas = false)
+  #if ($sbCurObj)
+    #foreach ($sbF in $sbFields)
+      #set ($sbCurV = "$!sbCurObj.getValue($sbF)")
+      #set ($sbCurV = $sbCurV.trim())
+      #if ($sbCurV != '')
+        #set ($sbCurHas = true)
+      #end
+    #end
+  #end
+  #if ($sbHist.isEmpty())
+    $response.sendError(404, 'No earlier values found in page history')
+    $xcontext.setFinished(true)
+  #elseif ($sbCurHas)
+    $response.sendError(409, 'This page already has values, nothing restored')
+    $xcontext.setFinished(true)
+  #else
+    #set ($sbRestoreObj = $sbTarget.getObject($sbClassName, true))
+    #foreach ($sbF in $sbFields)
+      #set ($discard = $sbRestoreObj.set($sbF, $sbHist.get($sbF)))
+    #end
+    #set ($discard = $sbTarget.save("Restored sensitivity from version $sbHistRev", true))
+    $response.sendRedirect($sbTarget.getURL('view'))
+    $xcontext.setFinished(true)
+  #end
 #elseif ($sbPostedFields.isEmpty())
   $response.sendError(400, 'No sensitivity fields posted, nothing changed')
   $xcontext.setFinished(true)

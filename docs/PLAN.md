@@ -30,6 +30,7 @@ All pages live in the `SensitivityBanner` space (hidden).
 | `Code.BannerUIX` | UIX | Renders the banner at `content.header.after`. |
 | `Code.TabUIX` | UIX | Renders the Sensitivity tab with three dropdowns. |
 | `Code.Save` | Handler | Validates and saves the selections, then redirects back. |
+| `Code.BackupAdmin`, `Code.BackupSheet`, `Code.BackupChunk`, `Code.RestoreChunk` | ConfigurableClass, sheet and two JSON handlers | "Sensitivity Backup" admin section: browser side chunked backup download and dry run first restore. Both handlers are admin only. See `docs/DATA-SAFETY.md`. |
 | `Code.ReportAdmin` and `Code.ReportSheet` | ConfigurableClass and sheet | "Sensitivity Report" admin section: a Live Data table of all pages with values, plus lists of pages missing sensitivity and of values no longer in the configured lists. |
 
 ## Behaviour

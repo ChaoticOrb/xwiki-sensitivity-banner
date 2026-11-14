@@ -119,5 +119,33 @@ AppWithinMinutes"
     #end
   #end
 #end
+## Finds the newest earlier version of a page that had sensitivity values.
+## Sets $sbHist (map field to value, empty map if none) and $sbHistRev (version, empty if none).
+#macro (sbFindHistory $sbHistTarget)
+  #set ($sbHist = {})
+  #set ($sbHistRev = '')
+  #foreach ($sbRev in $sbHistTarget.getRecentRevisions(30))
+    #if ($sbHist.isEmpty())
+      #set ($sbOldDoc = $xwiki.getDocument($sbHistTarget, $sbRev))
+      #set ($sbOldObj = $sbOldDoc.getObject($sbClassName))
+      #if ($sbOldObj)
+        #set ($sbTmpHist = {})
+        #set ($sbAnyHist = false)
+        #foreach ($sbHistField in $sbFields)
+          #set ($sbHistValue = "$!sbOldObj.getValue($sbHistField)")
+          #set ($sbHistValue = $sbHistValue.trim())
+          #set ($discard = $sbTmpHist.put($sbHistField, $sbHistValue))
+          #if ($sbHistValue != '')
+            #set ($sbAnyHist = true)
+          #end
+        #end
+        #if ($sbAnyHist)
+          #set ($sbHist = $sbTmpHist)
+          #set ($sbHistRev = $sbRev)
+        #end
+      #end
+    #end
+  #end
+#end
 {{/velocity}}</content>
 </xwikidoc>

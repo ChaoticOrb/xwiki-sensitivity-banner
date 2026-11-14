@@ -164,6 +164,22 @@
     &lt;p class="text-muted"&gt;You need edit rights on this page to change its sensitivity.&lt;/p&gt;
   #end
 &lt;/form&gt;
+#if ($sbCanEdit &amp;&amp; !$sbHasValue)
+  #sbFindHistory($doc)
+  #if (!$sbHist.isEmpty())
+  &lt;form method="post" class="xform" action="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.Save', 'get'))"&gt;
+    &lt;input type="hidden" name="form_token" value="$!escapetool.xml($services.csrf.token)" /&gt;
+    &lt;input type="hidden" name="target" value="$escapetool.xml($services.model.serialize($doc.documentReference, 'default'))" /&gt;
+    &lt;input type="hidden" name="restoreHistory" value="1" /&gt;
+    &lt;p&gt;An earlier version of this page (&lt;strong&gt;$escapetool.xml($sbHistRev)&lt;/strong&gt;) had:
+    #foreach ($sbF in $sbFields)
+      $escapetool.xml($sbLabels.get($sbF)): &lt;strong&gt;#if ($sbHist.get($sbF) != '')$escapetool.xml($sbHist.get($sbF))#{else}not set#end&lt;/strong&gt;#if ($foreach.hasNext), #end
+    #end
+    &lt;/p&gt;
+    &lt;p&gt;&lt;input type="submit" class="button" value="Restore these values" /&gt;&lt;/p&gt;
+  &lt;/form&gt;
+  #end
+#end
 {{/html}}
 {{/velocity}}</content>
     </property>

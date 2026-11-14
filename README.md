@@ -24,4 +24,6 @@ The Sensitivity Report section lists every page with values in a sortable, filte
 
 Reinstalling the XAR resets the banner settings to their defaults, so note them first.
 
+The Sensitivity Backup section downloads a JSON backup of every page's values and restores from one, with a dry run first. The Sensitivity tab can restore values from an earlier page version when a rollback has removed them.
+
 See `docs/DATA-SAFETY.md` for how stored values are protected and what to check before upgrading, and `tools/README.md` for the pre-release checks.
