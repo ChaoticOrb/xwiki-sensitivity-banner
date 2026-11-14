@@ -25,8 +25,8 @@ All pages live in the `SensitivityBanner` space (hidden).
 |---|---|---|
 | `Code.SensitivityClass` | XClass | Per page data: `owner`, `security`, `country` (plain strings, so they are searchable with HQL). |
 | `Code.ConfigClass` | XClass | Settings: `enabled`, `missingText`, `ownerValues`, `securityValues`, `countryValues`, `excludedSpaces`. |
-| `Code.Admin` | ConfigurableClass | Adds a "Sensitivity Banner" section to wiki administration. Stores the config object in `XWiki.XWikiPreferences`. |
-| `Code.Common` | Velocity include | Reads config, applies built-in defaults when no config object exists yet, parses option lists. |
+| `Code.Admin` | ConfigurableClass | Adds a "Sensitivity Banner" section to wiki administration. The settings object (`Code.ConfigClass`) is stored on this page, because the platform form reads the first object of the configuration class from the page that holds the ConfigurableClass object (`XWiki/ConfigurableClass.xml`, `$app.getObject(...)`). |
+| `Code.Common` | Velocity include | Reads the settings object from `Code.Admin`, falls back to built-in defaults if it is missing, parses option lists. |
 | `Code.BannerUIX` | UIX | Renders the banner at `content.header.after`. |
 | `Code.TabUIX` | UIX | Renders the Sensitivity tab with three dropdowns. |
 | `Code.Save` | Handler | Validates and saves the selections, then redirects back. |
@@ -34,7 +34,8 @@ All pages live in the `SensitivityBanner` space (hidden).
 ## Behaviour
 
 - Option lists are one value per line, optionally `Value|#colour`. Defaults: Owner (Management, Senior Management, Standard Staff), Security (Sensitive red, Open green), Country (UK, Europe).
-- Banner is on with no configuration, because defaults are in code and an unsaved config object is treated as enabled.
+- Banner is on by default. The shipped settings object has `enabled=1`, and code defaults apply if the object is ever missing.
+- Reinstalling or upgrading the XAR overwrites `Code.Admin` and resets the settings to defaults. Note them before reinstalling.
 - Nothing selected shows the configured missing text (default "Page missing sensitivity"). Partly filled shows only the chosen values.
 - Spaces `XWiki` and `SensitivityBanner` are excluded by default (configurable). Non-existent pages never show it.
 - The stored value is the option text. Renaming an option in config leaves existing pages holding the old text. The banner still shows it, and the tab marks it as retired.
@@ -59,3 +60,4 @@ All pages live in the `SensitivityBanner` space (hidden).
 - Velocity cannot call a method on a string literal (`"$x".trim()` is a syntax error). Assign to a variable first.
 - Velocity in every page is now run through the Velocity 2.3 parser before building. Parsing proves syntax only, not behaviour on a live wiki.
 - UIX pages hold a short description as their own page content. The real template lives only in the UIX object, so viewing the UIX page directly no longer runs it.
+- The admin section first failed with "No object of class ... found in page SensitivityBanner.Code.Admin" because the settings object was not on that page. It now ships there with the defaults.

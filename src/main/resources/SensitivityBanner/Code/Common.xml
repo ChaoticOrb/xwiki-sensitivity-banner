@@ -19,7 +19,7 @@
   <content>{{velocity output="false"}}
 ## Shared setup. Defines: $sbEnabled, $sbMissingText, $sbFields, $sbLabels, $sbOptions, $sbExcluded, $sbClassName.
 #set ($sbClassName = 'SensitivityBanner.Code.SensitivityClass')
-#set ($sbConfigObj = $xwiki.getDocument('XWiki.XWikiPreferences').getObject('SensitivityBanner.Code.ConfigClass'))
+#set ($sbConfigObj = $xwiki.getDocument('SensitivityBanner.Code.Admin').getObject('SensitivityBanner.Code.ConfigClass'))
 #set ($sbDefaults = {
   'missingText': 'Page missing sensitivity',
   'owner': "Management
