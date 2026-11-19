@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Removed the Sensitivity Report admin section (table of pages, missing pages list, retired values list). It is not needed for migration. The Sensitivity Banner settings, Sensitivity Backup section, tab and banner are unchanged.
+- If you are upgrading by importing the XAR over an existing install, the two old report pages are not deleted by the import. Delete `SensitivityBanner.Code.ReportAdmin` and `SensitivityBanner.Code.ReportSheet` by hand.
+
 ## 0.1.0
 
 First release, a pre-release. Built against XWiki 17.4.0 and tested by the author on one 17.4 instance. Other versions are untested.

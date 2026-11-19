@@ -4,7 +4,7 @@ Goal: values applied to pages must survive uninstalling, changing or upgrading t
 
 ## Where the data lives
 
-Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass` with the plain text properties `owner`, `security` and `country`. The values are in the wiki database against that page. Nothing is stored in the XAR, in the settings, or in the report.
+Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass` with the plain text properties `owner`, `security` and `country`. The values are in the wiki database against that page. Nothing is stored in the XAR or in the settings.
 
 ## What was verified in the platform source
 
@@ -24,7 +24,7 @@ Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass
 | Situation | Expected result |
 |---|---|
 | Reinstall, upgrade or uninstall the XAR | Page values untouched. Reinstalling brings the class and tab back. Settings reset on reinstall. |
-| Rename or remove an option in settings | Pages keep the stored text. It appears under retired values in the report. |
+| Rename or remove an option in settings | Pages keep the stored text. The banner still shows it and the tab marks it as retired. |
 | A page is rolled back to an older version | Values go back to that version's. If it had none, use the tab's restore from history, or restore from a backup. |
 | Values lost on many pages | Dry run, then restore blanks only from the latest backup. |
 | Bug in an update clears or changes values | Restore from the latest backup. Page history also holds the previous values. |
@@ -35,7 +35,7 @@ Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass
 
 1. Download a backup regularly, and always immediately before an upgrade or uninstall. Store it with your Proxmox Backup Server backups, not only on the wiki host.
 2. Also take a snapshot of the wiki VM or container before an upgrade.
-3. Open the Sensitivity Report and note the exact number of entries shown under the table and the summary counts. After the upgrade compare. They must match.
+3. Open the downloaded backup file and note its `count`. After the upgrade download a second backup and compare the `count`. They must match.
 4. If they do not, stop, run a dry run against the backup, and restore blanks only.
 
 ## Rules for future changes

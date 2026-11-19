@@ -6,7 +6,7 @@ Adds a banner to the top of pages and blog posts showing Owner, Security and Cou
 
     mvn package
 
-This produces `target/xwiki-sensitivity-banner-0.1.0.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
+This produces `target/xwiki-sensitivity-banner-<version>.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
 
 ## Install
 
@@ -19,8 +19,6 @@ Open any page and pick values in the **Sensitivity** tab at the bottom (next to 
 Edit the allowed values, the missing text and the excluded spaces under Administration, Sensitivity Banner. One value per line, optionally followed by a colour, for example `Sensitive|#c0392b`.
 
 Under Administration, Content, the Sensitivity Banner section also controls whether the banner is hidden on terminal pages (any page not named WebHome) and on Application Within Minutes application pages. A page that already has a value always shows its banner.
-
-The Sensitivity Report section lists every page with values in a sortable, filterable table, pages that are missing sensitivity, and stored values that are no longer in the configured lists.
 
 Reinstalling the XAR resets the banner settings to their defaults, so note them first.
 
