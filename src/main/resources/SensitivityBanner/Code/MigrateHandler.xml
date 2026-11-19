@@ -1,0 +1,261 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateHandler" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>MigrateHandler</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Migration Handler</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity wiki="false"}}
+#if ($xcontext.action == 'get' &amp;&amp; "$!request.outputSyntax" == 'plain')
+  #set ($discard = $response.setContentType('application/json'))
+  #set ($mgOp = "$!request.op")
+  #set ($mgOps = ['config', 'list', 'content', 'apply', 'clean'])
+  #set ($mgModes = ['dryrun', 'apply'])
+  #set ($mgIsPost = ($request.getMethod() == 'POST'))
+  #if (!$xwiki.hasAdminRights())
+    #set ($discard = $response.setStatus(403))
+    $jsontool.serialize({'error': 'Administration rights required'})
+  #elseif (!$mgOps.contains($mgOp))
+    #set ($discard = $response.setStatus(400))
+    $jsontool.serialize({'error': 'Unknown operation'})
+  #elseif (($mgOp == 'content' || $mgOp == 'apply' || $mgOp == 'clean') &amp;&amp; !$mgIsPost)
+    #set ($discard = $response.setStatus(405))
+    $jsontool.serialize({'error': 'POST required'})
+  #elseif ($mgIsPost &amp;&amp; !$services.csrf.isTokenValid($request.form_token))
+    #set ($discard = $response.setStatus(403))
+    $jsontool.serialize({'error': 'Invalid form token. Reload the page and try again.'})
+  #elseif ($mgOp == 'config')
+    #set ($mgOpts = {})
+    #foreach ($mgF in $sbFields)
+      #set ($mgLabels = [])
+      #foreach ($mgOpt in $sbOptions.get($mgF))
+        #set ($discard = $mgLabels.add($mgOpt.label))
+      #end
+      #set ($discard = $mgOpts.put($mgF, $mgLabels))
+    #end
+    $jsontool.serialize({'fields': $sbFields, 'options': $mgOpts})
+  #elseif ($mgOp == 'list')
+    #set ($mgMacro = "$!request.macro")
+    #if (!$mgMacro.matches('^[A-Za-z0-9_]{1,40}$'))
+      #set ($discard = $response.setStatus(400))
+      $jsontool.serialize({'error': 'Invalid macro name'})
+    #else
+      ## Only a pre-filter: pages whose source mentions the macro name. The browser does the real parsing.
+      #set ($mgQuery = $services.query.xwql("where doc.translation = 0 and doc.content like :mg and doc.space not like 'SensitivityBanner%' order by doc.fullName"))
+      #set ($discard = $mgQuery.bindValue('mg', "%$mgMacro%"))
+      #set ($mgNames = $mgQuery.setLimit(100000).execute())
+      $jsontool.serialize({'total': $mgNames.size(), 'names': $mgNames})
+    #end
+  #elseif ($mgOp == 'content')
+    #set ($mgNamesIn = $jsontool.fromString($request.names))
+    #if (!$mgNamesIn || $mgNamesIn.size() &gt; 25)
+      #set ($discard = $response.setStatus(400))
+      $jsontool.serialize({'error': 'Expected a list of at most 25 page names'})
+    #else
+      #set ($mgPages = [])
+      #foreach ($mgName in $mgNamesIn)
+        #set ($mgRef = $services.model.resolveDocument("$mgName"))
+        #if ($xwiki.exists($mgRef))
+          #set ($mgDoc = $xwiki.getDocument($mgRef))
+          #set ($mgObjs = $mgDoc.getObjects($sbClassName))
+          #set ($mgHasObj = !$mgObjs.isEmpty())
+          #set ($mgVals = {})
+          #foreach ($mgF in $sbFields)
+            #set ($mgV = '')
+            #if ($mgHasObj)
+              #set ($mgV = "$!mgObjs.get(0).getValue($mgF)")
+              #set ($mgV = $mgV.trim())
+            #end
+            #set ($discard = $mgVals.put($mgF, $mgV))
+          #end
+          #set ($discard = $mgPages.add({'page': "$mgName", 'content': $mgDoc.getContent(), 'values': $mgVals, 'canEdit': $mgDoc.hasAccessLevel('edit')}))
+        #end
+      #end
+      $jsontool.serialize({'pages': $mgPages})
+    #end
+  #elseif ($mgOp == 'apply')
+    #set ($mgMode = "$!request.mode")
+    #set ($mgRows = $jsontool.fromString($request.rows))
+    #if (!$mgModes.contains($mgMode) || !$mgRows || $mgRows.size() &gt; 100)
+      #set ($discard = $response.setStatus(400))
+      $jsontool.serialize({'error': 'Expected a mode and a list of at most 100 rows'})
+    #else
+      #set ($mgCounts = {'ready': 0, 'hasvalues': 0, 'invalid': 0, 'missing': 0, 'norights': 0, 'applied': 0})
+      #set ($mgProblems = [])
+      #foreach ($mgRow in $mgRows)
+        #set ($mgPage = "$!mgRow.get('page')")
+        #set ($mgVals = {})
+        #set ($mgBad = ($mgPage == '' || $mgPage.length() &gt; 500))
+        #set ($mgAny = false)
+        #foreach ($mgF in $sbFields)
+          #set ($mgV = "$!mgRow.get($mgF)")
+          #set ($mgV = $mgV.trim())
+          #set ($discard = $mgVals.put($mgF, $mgV))
+          #if ($mgV != '')
+            #set ($mgAny = true)
+            ## Every value must be exactly one of the configured option texts.
+            #set ($mgOk = false)
+            #foreach ($mgOpt in $sbOptions.get($mgF))
+              #if ($mgOpt.label == $mgV)
+                #set ($mgOk = true)
+              #end
+            #end
+            #if (!$mgOk)
+              #set ($mgBad = true)
+            #end
+          #end
+        #end
+        #if (!$mgAny)
+          #set ($mgBad = true)
+        #end
+        #set ($mgOutcome = 'invalid')
+        #if (!$mgBad)
+          #set ($mgRef = $services.model.resolveDocument($mgPage))
+          #if (!$xwiki.exists($mgRef))
+            #set ($mgOutcome = 'missing')
+          #else
+            #set ($mgDoc = $xwiki.getDocument($mgRef))
+            #set ($mgObjs = $mgDoc.getObjects($sbClassName))
+          #set ($mgHasObj = !$mgObjs.isEmpty())
+            #set ($mgCurHas = false)
+            #if ($mgHasObj)
+              #foreach ($mgF in $sbFields)
+                #set ($mgCur = "$!mgObjs.get(0).getValue($mgF)")
+                #set ($mgCur = $mgCur.trim())
+                #if ($mgCur != '')
+                  #set ($mgCurHas = true)
+                #end
+              #end
+            #end
+            #if (!$mgDoc.hasAccessLevel('edit'))
+              #set ($mgOutcome = 'norights')
+            #elseif ($mgCurHas)
+              #set ($mgOutcome = 'hasvalues')
+            #else
+              #set ($mgOutcome = 'ready')
+            #end
+          #end
+        #end
+        #set ($discard = $mgCounts.put($mgOutcome, $mathtool.add($mgCounts.get($mgOutcome), 1)))
+        #if ($mgOutcome == 'ready' &amp;&amp; $mgMode == 'apply')
+          #set ($mgSaveObj = $mgDoc.getObject($sbClassName, true))
+          #foreach ($mgF in $sbFields)
+            #set ($discard = $mgSaveObj.set($mgF, $mgVals.get($mgF)))
+          #end
+          #set ($discard = $mgDoc.save('Migrated sensitivity from the old Confluence macro', true))
+          #set ($discard = $mgCounts.put('applied', $mathtool.add($mgCounts.get('applied'), 1)))
+        #elseif ($mgOutcome != 'ready' &amp;&amp; $mgProblems.size() &lt; 50)
+          #set ($discard = $mgProblems.add({'page': $mgPage, 'result': $mgOutcome}))
+        #end
+      #end
+      $jsontool.serialize({'mode': $mgMode, 'counts': $mgCounts, 'problems': $mgProblems})
+    #end
+  #elseif ($mgOp == 'clean')
+    #set ($mgMode = "$!request.mode")
+    #set ($mgRows = $jsontool.fromString($request.rows))
+    #if (!$mgModes.contains($mgMode) || !$mgRows || $mgRows.size() &gt; 25)
+      #set ($discard = $response.setStatus(400))
+      $jsontool.serialize({'error': 'Expected a mode and a list of at most 25 rows'})
+    #else
+      #set ($mgCounts = {'removable': 0, 'differs': 0, 'invalid': 0, 'missing': 0, 'norights': 0, 'notfound': 0, 'applied': 0})
+      #set ($mgProblems = [])
+      #foreach ($mgRow in $mgRows)
+        #set ($mgPage = "$!mgRow.get('page')")
+        #set ($mgRemove = [])
+        #if ($mgRow.containsKey('remove'))
+          #set ($mgRemove = $mgRow.get('remove'))
+        #end
+        #set ($mgVals = {})
+        #set ($mgBad = ($mgPage == '' || $mgPage.length() &gt; 500))
+        #set ($mgAny = false)
+        #foreach ($mgF in $sbFields)
+          #set ($mgV = "$!mgRow.get($mgF)")
+          #set ($mgV = $mgV.trim())
+          #set ($discard = $mgVals.put($mgF, $mgV))
+          #if ($mgV != '')
+            #set ($mgAny = true)
+          #end
+        #end
+        #if (!$mgAny || !$mgRemove || $mgRemove.size() &lt; 1 || $mgRemove.size() &gt; 20)
+          #set ($mgBad = true)
+        #else
+          #foreach ($mgRem in $mgRemove)
+            #set ($mgRemCheck = "$!mgRem")
+            #if ($mgRemCheck == '' || $mgRemCheck.length() &gt; 5000)
+              #set ($mgBad = true)
+            #end
+          #end
+        #end
+        #set ($mgOutcome = 'invalid')
+        #if (!$mgBad)
+          #set ($mgRef = $services.model.resolveDocument($mgPage))
+          #if (!$xwiki.exists($mgRef))
+            #set ($mgOutcome = 'missing')
+          #else
+            #set ($mgDoc = $xwiki.getDocument($mgRef))
+            #set ($mgObjs = $mgDoc.getObjects($sbClassName))
+          #set ($mgHasObj = !$mgObjs.isEmpty())
+            ## The stored values must already equal what the macro says, otherwise nothing is removed.
+            #set ($mgSame = true)
+            #foreach ($mgF in $sbFields)
+              #set ($mgCur = '')
+              #if ($mgHasObj)
+                #set ($mgCur = "$!mgObjs.get(0).getValue($mgF)")
+                #set ($mgCur = $mgCur.trim())
+              #end
+              #if ($mgCur != $mgVals.get($mgF))
+                #set ($mgSame = false)
+              #end
+            #end
+            #set ($mgContent = $mgDoc.getContent())
+            #set ($mgAllFound = true)
+            #foreach ($mgRem in $mgRemove)
+              #set ($mgRemText = "$mgRem")
+              #if (!$mgContent.contains($mgRemText))
+                #set ($mgAllFound = false)
+              #end
+            #end
+            #if (!$mgDoc.hasAccessLevel('edit'))
+              #set ($mgOutcome = 'norights')
+            #elseif (!$mgSame)
+              #set ($mgOutcome = 'differs')
+            #elseif (!$mgAllFound)
+              #set ($mgOutcome = 'notfound')
+            #else
+              #set ($mgOutcome = 'removable')
+            #end
+          #end
+        #end
+        #set ($discard = $mgCounts.put($mgOutcome, $mathtool.add($mgCounts.get($mgOutcome), 1)))
+        #if ($mgOutcome == 'removable' &amp;&amp; $mgMode == 'apply')
+          #set ($mgNew = $mgContent)
+          #foreach ($mgRem in $mgRemove)
+            #set ($mgRemText = "$mgRem")
+            #set ($mgNew = $mgNew.replace($mgRemText, ''))
+          #end
+          #set ($discard = $mgDoc.setContent($mgNew))
+          #set ($discard = $mgDoc.save('Removed the old sensitivity macro after migration', true))
+          #set ($discard = $mgCounts.put('applied', $mathtool.add($mgCounts.get('applied'), 1)))
+        #elseif ($mgOutcome != 'removable' &amp;&amp; $mgProblems.size() &lt; 50)
+          #set ($discard = $mgProblems.add({'page': $mgPage, 'result': $mgOutcome}))
+        #end
+      #end
+      $jsontool.serialize({'mode': $mgMode, 'counts': $mgCounts, 'problems': $mgProblems})
+    #end
+  #end
+#end
+{{/velocity}}</content>
+</xwikidoc>

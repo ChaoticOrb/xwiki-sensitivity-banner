@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Removed the Sensitivity Report admin section (table of pages, missing pages list, retired values list). It is not needed for migration. The Sensitivity Banner settings, Sensitivity Backup section, tab and banner are unchanged.
+- Added the Sensitivity Migration admin section: a one time transfer of Owner, Security and Country from the old Confluence `sensitivity` user macro, in two steps (copy the values, then remove the macro), each with a dry run first. See `docs/MIGRATION.md`.
+- Hardened the handlers so a page without a sensitivity object is never confused with the previous page in a batch, whatever the Velocity null assignment setting.
+- If you are upgrading by importing the XAR over an existing install, the two old report pages are not deleted by the import. Delete `SensitivityBanner.Code.ReportAdmin` and `SensitivityBanner.Code.ReportSheet` by hand.
+
 ## 0.1.0
 
 First release, a pre-release. Built against XWiki 17.4.0 and tested by the author on one 17.4 instance. Other versions are untested.

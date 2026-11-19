@@ -1,8 +1,8 @@
 <?xml version="1.1" encoding="UTF-8"?>
 
-<xwikidoc version="1.6" reference="SensitivityBanner.Code.ReportAdmin" locale="">
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateAdmin" locale="">
   <web>SensitivityBanner.Code</web>
-  <name>ReportAdmin</name>
+  <name>MigrateAdmin</name>
   <language/>
   <defaultLanguage/>
   <translation>0</translation>
@@ -11,17 +11,17 @@
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <version>1.1</version>
-  <title>Sensitivity Report Administration</title>
+  <title>Sensitivity Migration Administration</title>
   <comment/>
   <minorEdit>false</minorEdit>
   <syntaxId>xwiki/2.1</syntaxId>
   <hidden>true</hidden>
-  <content>Administration section that lists pages with sensitivity values and pages missing them.</content>
+  <content>Administration section for the one time transfer of values from the old Confluence macro.</content>
   <object>
-    <name>SensitivityBanner.Code.ReportAdmin</name>
+    <name>SensitivityBanner.Code.MigrateAdmin</name>
     <number>0</number>
     <className>XWiki.ConfigurableClass</className>
-    <guid>d6f0957e-9b7c-52a7-86a0-699b77d9708f</guid>
+    <guid>fdbc64df-a8f0-5c8d-a351-65b1e550ec17</guid>
     <class>
       <name>XWiki.ConfigurableClass</name>
       <customClass/>
@@ -240,10 +240,10 @@
       </sectionOrder>
     </class>
     <property>
-      <codeToExecute>{{include reference="SensitivityBanner.Code.ReportSheet"/}}</codeToExecute>
+      <codeToExecute>{{include reference="SensitivityBanner.Code.MigrateSheet"/}}</codeToExecute>
     </property>
     <property>
-      <displayInSection>Sensitivity Report</displayInSection>
+      <displayInSection>Sensitivity Migration</displayInSection>
     </property>
     <property>
       <scope>WIKI</scope>
@@ -252,7 +252,7 @@
       <displayInCategory>content</displayInCategory>
     </property>
     <property>
-      <sectionOrder>830</sectionOrder>
+      <sectionOrder>850</sectionOrder>
     </property>
   </object>
 </xwikidoc>

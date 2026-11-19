@@ -2,7 +2,7 @@
 """Fail if the stored-data contract of the Sensitivity class has been changed.
 
 Page values are stored under the property names below. Renaming or retyping one
-makes values already saved on pages unreadable by the banner, tab and report.
+makes values already saved on pages unreadable by the banner, tab, backup and restore.
 Run before every release: python3 tools/check-class-contract.py
 """
 import sys
