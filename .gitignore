@@ -1,1 +1,3 @@
+tools/handler-test/lib/
+tools/handler-test/*.class
 target/

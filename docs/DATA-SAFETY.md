@@ -38,6 +38,10 @@ Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass
 3. Open the downloaded backup file and note its `count`. After the upgrade download a second backup and compare the `count`. They must match.
 4. If they do not, stop, run a dry run against the backup, and restore blanks only.
 
+## Migration writes
+
+The Sensitivity Migration section writes values to pages and can remove the old macro from page source. Both steps start with a dry run, only touch pages that pass the same checks as a normal save, never overwrite existing values, and leave a page version for every change. Take a backup of the wiki and download a Sensitivity Backup file before running it. Removal is the only step that edits page content, so it only acts where the stored values already match the macro.
+
 ## Rules for future changes
 
 1. Never rename or retype `owner`, `security` or `country`, and never change the class name. Add new properties instead.

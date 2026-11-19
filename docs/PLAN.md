@@ -30,6 +30,7 @@ All pages live in the `SensitivityBanner` space (hidden).
 | `Code.BannerUIX` | UIX | Renders the banner at `content.header.after`. |
 | `Code.TabUIX` | UIX | Renders the Sensitivity tab with three dropdowns. |
 | `Code.Save` | Handler | Validates and saves the selections, then redirects back. |
+| `Code.MigrateAdmin`, `Code.MigrateSheet`, `Code.MigrateHandler` | ConfigurableClass, sheet and JSON handler | "Sensitivity Migration" admin section: one time transfer from the old Confluence macro. Parsing in the browser, checked writes in the wiki. See `docs/MIGRATION.md`. |
 | `Code.BackupAdmin`, `Code.BackupSheet`, `Code.BackupChunk`, `Code.RestoreChunk` | ConfigurableClass, sheet and two JSON handlers | "Sensitivity Backup" admin section: browser side chunked backup download and dry run first restore. Both handlers are admin only. See `docs/DATA-SAFETY.md`. |
 
 ## Behaviour

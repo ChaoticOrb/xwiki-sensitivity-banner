@@ -73,13 +73,14 @@
             #set ($rsOutcome = 'missing')
           #else
             #set ($rsDoc = $xwiki.getDocument($rsRef))
-            #set ($rsObj = $rsDoc.getObject($sbClassName))
+            #set ($rsObjs = $rsDoc.getObjects($sbClassName))
+            #set ($rsHasObj = !$rsObjs.isEmpty())
             #set ($rsCurHas = false)
             #set ($rsSame = true)
             #foreach ($rsF in $sbFields)
               #set ($rsCur = '')
-              #if ($rsObj)
-                #set ($rsCur = "$!rsObj.getValue($rsF)")
+              #if ($rsHasObj)
+                #set ($rsCur = "$!rsObjs.get(0).getValue($rsF)")
                 #set ($rsCur = $rsCur.trim())
               #end
               #if ($rsCur != '')

@@ -1,0 +1,437 @@
+<?xml version="1.1" encoding="UTF-8"?>
+
+<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateSheet" locale="">
+  <web>SensitivityBanner.Code</web>
+  <name>MigrateSheet</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <creator>xwiki:XWiki.Admin</creator>
+  <parent>SensitivityBanner.WebHome</parent>
+  <author>xwiki:XWiki.Admin</author>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <version>1.1</version>
+  <title>Sensitivity Migration Sheet</title>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.1</syntaxId>
+  <hidden>true</hidden>
+  <content>{{include reference="SensitivityBanner.Code.Common" /}}
+
+{{velocity}}
+This is a one time transfer of the sensitivity values from the old Confluence user macro into the new Owner, Security and Country fields. It has two separate steps. **Take a backup of the wiki first**, and download a Sensitivity Backup file if pages already have values.
+
+{{html clean="false"}}
+&lt;p&gt;The old macro is expected to appear in the page source as &lt;code&gt;{{sensitivity owner="..." security="..." country="..."/}}&lt;/code&gt;, with or without a &lt;code&gt;confluence_&lt;/code&gt; prefix, or as the literal Confluence markup &lt;code&gt;{sensitivity:owner=...|security=...|country=...}&lt;/code&gt;. Parameter names are not case sensitive. If your pages use different names, change them below before running.&lt;/p&gt;
+&lt;div id="sb-mg"
+  data-url="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.MigrateHandler', 'get', 'outputSyntax=plain'))"
+  data-token="$!escapetool.xml($services.csrf.token)"&gt;
+  &lt;table class="table" style="max-width:40em;"&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-macro"&gt;Macro name&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-macro" value="sensitivity" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-owner"&gt;Parameter for Owner&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-owner" value="owner" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-security"&gt;Parameter for Security&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-security" value="security" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-country"&gt;Parameter for Country&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-country" value="country" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/div&gt;
+{{/html}}
+
+== Step 1: copy the values into the new fields ==
+
+The dry run reads every page that mentions the macro name, works out the values, and reports what it would do. It changes nothing. Values are matched to your Sensitivity Banner option lists ignoring case, and the option text from your lists is what gets stored. A page with a value that is not in your lists is skipped and listed, so fix the list or the page and run again. Pages that already have sensitivity values are never changed. The macro is left on the page in this step.
+
+{{html clean="false"}}
+&lt;p&gt;
+  &lt;button type="button" class="btn btn-default" id="sb-mg-scan-m"&gt;Dry run: migration&lt;/button&gt;
+  &lt;button type="button" class="btn btn-warning" id="sb-mg-apply-m" disabled="disabled"&gt;Apply migration&lt;/button&gt;
+&lt;/p&gt;
+{{/html}}
+
+== Step 2: remove the old macro ==
+
+Run this only after you have checked that the values look right on your pages. It removes the old macro only from pages whose stored values already match what the macro says. Every changed page gets a normal page version with the comment "Removed the old sensitivity macro after migration", so it can be undone from page history. Page translations are not handled.
+
+{{html clean="false"}}
+&lt;p&gt;
+  &lt;button type="button" class="btn btn-default" id="sb-mg-scan-c"&gt;Dry run: remove macros&lt;/button&gt;
+  &lt;button type="button" class="btn btn-danger" id="sb-mg-apply-c" disabled="disabled"&gt;Remove old macros&lt;/button&gt;
+&lt;/p&gt;
+&lt;p id="sb-mg-status" role="status"&gt;&lt;/p&gt;
+&lt;pre id="sb-mg-result" style="max-height:24em;overflow:auto;"&gt;&lt;/pre&gt;
+{{/html}}
+{{/velocity}}
+
+{{html clean="false"}}
+&lt;script&gt;
+(function () {
+  'use strict';
+
+  var FIELDS = ['owner', 'security', 'country'];
+  var PAGE_CHUNK = 25;
+  var APPLY_CHUNK = 100;
+  var CLEAN_CHUNK = 25;
+  var MAX_DETAILS = 300;
+
+  // ---------------------------------------------------------------- core (no DOM, used by the tests)
+
+  function escapeRegex(s) {
+    return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;');
+  }
+
+  function collapse(s) {
+    return String(s === null || s === undefined ? '' : s).replace(/\s+/g, ' ').trim();
+  }
+
+  function decodeEntities(s) {
+    return String(s)
+      .replace(/&amp;quot;/g, '"')
+      .replace(/&amp;#39;/g, "'")
+      .replace(/&amp;lt;/g, '&lt;')
+      .replace(/&amp;gt;/g, '&gt;')
+      .replace(/&amp;amp;/g, '&amp;');
+  }
+
+  // XWiki macro parameters: key="value", with ~ escaping a quote or a tilde inside the value.
+  function parseXWikiParams(str) {
+    var out = {};
+    var re = /([A-Za-z_][A-Za-z0-9_-]*)\s*=\s*"((?:~.|[^"~])*)"/g;
+    var m;
+    while ((m = re.exec(str)) !== null) {
+      out[m[1].toLowerCase()] = m[2].replace(/~(.)/g, '$1');
+    }
+    return out;
+  }
+
+  // Confluence wiki markup parameters: owner=Management|security=Sensitive|country=UK
+  function parseConfluenceParams(str) {
+    var out = {};
+    if (!str) { return out; }
+    var parts = str.split('|');
+    for (var i = 0; i &lt; parts.length; i++) {
+      var idx = parts[i].indexOf('=');
+      if (idx &gt; 0) {
+        out[parts[i].slice(0, idx).trim().toLowerCase()] = parts[i].slice(idx + 1).trim();
+      }
+    }
+    return out;
+  }
+
+  // Finds the macro in either form: the XWiki macro (optionally with the confluence_ prefix)
+  // or the literal Confluence markup. Parameter names are matched case-insensitively.
+  function findMacros(content, cfg) {
+    var name = escapeRegex(cfg.macro);
+    var found = [];
+    var m;
+    var openBraces = '\\{\\{';
+    var closeBraces = '\\}\\}';
+    var reX = new RegExp(
+      openBraces + '(?:confluence_)?' + name + '((?:\\s[^}]*?)?)\\s*(?:\\/' + closeBraces +
+      '|' + closeBraces + '[\\s\\S]*?' + openBraces + '\\/(?:confluence_)?' + name + '\\s*' + closeBraces + ')', 'gi');
+    while ((m = reX.exec(content)) !== null) {
+      found.push({ raw: m[0], start: m.index, end: m.index + m[0].length, form: 'xwiki', params: parseXWikiParams(m[1] || '') });
+    }
+    var reC = new RegExp('(?&lt;!\\{)\\{' + name + '(?::([^\\n{}]*))?\\}(?!\\})', 'gi');
+    while ((m = reC.exec(content)) !== null) {
+      found.push({ raw: m[0], start: m.index, end: m.index + m[0].length, form: 'confluence', params: parseConfluenceParams(m[1] || '') });
+    }
+    found.sort(function (a, b) { return a.start - b.start; });
+    return found;
+  }
+
+  function fieldValues(macro, cfg) {
+    var values = {};
+    var any = false;
+    FIELDS.forEach(function (f) {
+      var key = String((cfg.names &amp;&amp; cfg.names[f]) || f).toLowerCase();
+      var v = macro.params[key];
+      v = collapse(decodeEntities(v === undefined ? '' : v));
+      values[f] = v;
+      if (v !== '') { any = true; }
+    });
+    return { values: values, any: any };
+  }
+
+  // Matches a value to a configured option ignoring case and repeated spaces, and returns the option text as configured.
+  function canonical(field, value, options) {
+    if (value === '') { return { ok: true, value: '' }; }
+    var list = (options &amp;&amp; options[field]) || [];
+    var lower = value.toLowerCase();
+    for (var i = 0; i &lt; list.length; i++) {
+      if (collapse(list[i]).toLowerCase() === lower) { return { ok: true, value: list[i] }; }
+    }
+    return { ok: false };
+  }
+
+  // The exact text to delete for a macro. When the macro sits alone on its line the line break goes with it.
+  function removalString(content, macro) {
+    var startsLine = macro.start === 0 || content.charAt(macro.start - 1) === '\n';
+    var end = macro.end;
+    if (startsLine) {
+      if (content.substr(end, 2) === '\r\n') { end += 2; }
+      else if (content.charAt(end) === '\n') { end += 1; }
+    }
+    return content.slice(macro.start, end);
+  }
+
+  function analyze(content, cfg, options) {
+    var macros = findMacros(content, cfg);
+    if (!macros.length) { return { status: 'nomacro' }; }
+    var valued = [];
+    macros.forEach(function (m) {
+      var fv = fieldValues(m, cfg);
+      if (fv.any) { valued.push({ macro: m, raw: fv.values }); }
+    });
+    if (!valued.length) { return { status: 'empty' }; }
+    var unmatched = [];
+    var parsed = [];
+    valued.forEach(function (v) {
+      var vals = {};
+      FIELDS.forEach(function (f) {
+        var c = canonical(f, v.raw[f], options);
+        if (c.ok) { vals[f] = c.value; }
+        else { vals[f] = ''; unmatched.push({ field: f, value: v.raw[f] }); }
+      });
+      parsed.push(vals);
+    });
+    if (unmatched.length) { return { status: 'unmatched', unmatched: unmatched }; }
+    var first = parsed[0];
+    var conflict = parsed.some(function (p) {
+      return FIELDS.some(function (f) { return p[f] !== first[f]; });
+    });
+    if (conflict) { return { status: 'conflict' }; }
+    var removals = [];
+    valued.forEach(function (v) {
+      var r = removalString(content, v.macro);
+      if (removals.indexOf(r) === -1) { removals.push(r); }
+    });
+    return { status: 'parsed', values: first, removals: removals };
+  }
+
+  function storedHasValue(page) {
+    return FIELDS.some(function (f) { return String(page.values[f] || '').trim() !== ''; });
+  }
+
+  function planMigration(page, a) {
+    if (a.status !== 'parsed') { return { outcome: a.status, unmatched: a.unmatched }; }
+    if (storedHasValue(page)) { return { outcome: 'hasvalues' }; }
+    if (!page.canEdit) { return { outcome: 'norights' }; }
+    return { outcome: 'ready', row: { page: page.page, owner: a.values.owner, security: a.values.security, country: a.values.country } };
+  }
+
+  function planCleanup(page, a) {
+    if (a.status !== 'parsed') { return { outcome: a.status, unmatched: a.unmatched }; }
+    if (!storedHasValue(page)) { return { outcome: 'notmigrated' }; }
+    var same = FIELDS.every(function (f) { return String(page.values[f] || '').trim() === a.values[f]; });
+    if (!same) { return { outcome: 'differs' }; }
+    if (!page.canEdit) { return { outcome: 'norights' }; }
+    return { outcome: 'removable', row: { page: page.page, owner: a.values.owner, security: a.values.security, country: a.values.country, remove: a.removals } };
+  }
+
+  window.SbMigrateCore = {
+    FIELDS: FIELDS,
+    findMacros: findMacros,
+    analyze: analyze,
+    canonical: canonical,
+    planMigration: planMigration,
+    planCleanup: planCleanup,
+    parseXWikiParams: parseXWikiParams,
+    parseConfluenceParams: parseConfluenceParams,
+    removalString: removalString
+  };
+
+  // ---------------------------------------------------------------- page wiring
+
+  var root = document.getElementById('sb-mg');
+  if (!root) { return; }
+
+  var url = root.getAttribute('data-url');
+  var token = root.getAttribute('data-token');
+  var el = function (id) { return document.getElementById(id); };
+  var statusEl = el('sb-mg-status');
+  var resultEl = el('sb-mg-result');
+  var inputs = { macro: el('sb-mg-macro'), owner: el('sb-mg-owner'), security: el('sb-mg-security'), country: el('sb-mg-country') };
+  var buttons = { scanM: el('sb-mg-scan-m'), applyM: el('sb-mg-apply-m'), scanC: el('sb-mg-scan-c'), applyC: el('sb-mg-apply-c') };
+  var last = null;
+  var busy = false;
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  function readConfig() {
+    var macro = collapse(inputs.macro.value);
+    if (!/^[A-Za-z0-9_]{1,40}$/.test(macro)) { throw new Error('The macro name may only contain letters, digits and underscores'); }
+    var names = {};
+    FIELDS.forEach(function (f) {
+      var v = collapse(inputs[f].value);
+      if (v === '') { v = f; }
+      if (!/^[A-Za-z0-9_-]{1,40}$/.test(v)) { throw new Error('The parameter name for ' + f + ' may only contain letters, digits, underscores and hyphens'); }
+      names[f] = v;
+    });
+    return { macro: macro, names: names };
+  }
+
+  function configKey() {
+    try { return JSON.stringify(readConfig()); } catch (e) { return null; }
+  }
+
+  function updateButtons() {
+    var key = configKey();
+    var ready = function (kind) { return !busy &amp;&amp; last !== null &amp;&amp; last.kind === kind &amp;&amp; last.key === key &amp;&amp; last.rows.length &gt; 0; };
+    buttons.scanM.disabled = busy;
+    buttons.scanC.disabled = busy;
+    buttons.applyM.disabled = !ready('migrate');
+    buttons.applyC.disabled = !ready('clean');
+  }
+
+  async function readJson(res) {
+    var data;
+    try { data = await res.json(); } catch (e) { throw new Error('Unexpected response from the wiki (HTTP ' + res.status + ')'); }
+    if (!res.ok || data.error) { throw new Error(data.error || ('HTTP ' + res.status)); }
+    return data;
+  }
+
+  async function get(params) {
+    var qs = Object.keys(params).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&amp;');
+    return readJson(await fetch(url + '&amp;' + qs, { credentials: 'same-origin' }));
+  }
+
+  async function post(op, fields) {
+    var body = new URLSearchParams();
+    body.set('form_token', token);
+    body.set('op', op);
+    Object.keys(fields).forEach(function (k) { body.set(k, fields[k]); });
+    return readJson(await fetch(url, { method: 'POST', body: body, credentials: 'same-origin' }));
+  }
+
+  function add(map, key, n) { map[key] = (map[key] || 0) + (n === undefined ? 1 : n); }
+
+  function describe(page, plan) {
+    var line = plan.outcome + ': ' + page.page;
+    if (plan.outcome === 'unmatched' &amp;&amp; plan.unmatched) {
+      line += ' (' + plan.unmatched.map(function (u) { return u.field + '="' + u.value + '"'; }).join(', ') + ')';
+    }
+    return line;
+  }
+
+  var MIGRATE_LABELS = [
+    ['pages', 'Pages containing the macro name'],
+    ['nomacro', 'No macro found in the page source'],
+    ['empty', 'Macro found but no recognised values'],
+    ['unmatched', 'A value is not in your lists, skipped'],
+    ['conflict', 'Several macros disagree, skipped'],
+    ['hasvalues', 'Already have sensitivity values, skipped'],
+    ['norights', 'No edit rights, skipped'],
+    ['ready', 'Ready to migrate']
+  ];
+  var CLEAN_LABELS = [
+    ['pages', 'Pages containing the macro name'],
+    ['nomacro', 'No macro found in the page source'],
+    ['empty', 'Macro found but no recognised values'],
+    ['unmatched', 'A value is not in your lists, skipped'],
+    ['conflict', 'Several macros disagree, skipped'],
+    ['notmigrated', 'Page has no stored values yet, skipped'],
+    ['differs', 'Stored values differ from the macro, skipped'],
+    ['norights', 'No edit rights, skipped'],
+    ['removable', 'Macro can be removed']
+  ];
+
+  async function scan(kind) {
+    busy = true; last = null; updateButtons(); resultEl.textContent = '';
+    try {
+      var cfg = readConfig();
+      var key = JSON.stringify(cfg);
+      setStatus('Reading your option lists');
+      var conf = await get({ op: 'config' });
+      setStatus('Finding pages that mention the macro');
+      var list = await get({ op: 'list', macro: cfg.macro });
+      var names = list.names;
+      var tally = { pages: names.length };
+      var rows = [];
+      var details = [];
+      for (var i = 0; i &lt; names.length; i += PAGE_CHUNK) {
+        var data = await post('content', { names: JSON.stringify(names.slice(i, i + PAGE_CHUNK)) });
+        data.pages.forEach(function (p) {
+          var a = analyze(p.content, cfg, conf.options);
+          var plan = kind === 'migrate' ? planMigration(p, a) : planCleanup(p, a);
+          add(tally, plan.outcome);
+          if (plan.row) { rows.push(plan.row); }
+          else if (plan.outcome !== 'nomacro' &amp;&amp; details.length &lt; MAX_DETAILS) { details.push(describe(p, plan)); }
+        });
+        setStatus('Read ' + Math.min(i + PAGE_CHUNK, names.length) + ' of ' + names.length + ' pages');
+      }
+      var op = kind === 'migrate' ? 'apply' : 'clean';
+      var size = kind === 'migrate' ? APPLY_CHUNK : CLEAN_CHUNK;
+      var server = {};
+      var serverProblems = [];
+      for (var j = 0; j &lt; rows.length; j += size) {
+        var res = await post(op, { mode: 'dryrun', rows: JSON.stringify(rows.slice(j, j + size)) });
+        Object.keys(res.counts).forEach(function (k) { add(server, k, res.counts[k]); });
+        res.problems.forEach(function (p) { if (serverProblems.length &lt; 50) { serverProblems.push(p.result + ': ' + p.page); } });
+        setStatus('Checking with the wiki: ' + Math.min(j + size, rows.length) + ' of ' + rows.length);
+      }
+      var okKey = kind === 'migrate' ? 'ready' : 'removable';
+      var agree = (server[okKey] || 0) === rows.length;
+      var labels = kind === 'migrate' ? MIGRATE_LABELS : CLEAN_LABELS;
+      var lines = ['DRY RUN, nothing was changed (' + (kind === 'migrate' ? 'migration' : 'macro removal') + ')'];
+      labels.forEach(function (l) { lines.push(l[1] + ': ' + (tally[l[0]] || 0)); });
+      lines.push('The wiki agrees on ' + (server[okKey] || 0) + ' of ' + rows.length + ' pages' + (agree ? '' : ', check the details below before applying'));
+      if (details.length || serverProblems.length) {
+        lines.push('', 'Details (first ' + (details.length + serverProblems.length) + '):');
+        details.forEach(function (d) { lines.push(d); });
+        serverProblems.forEach(function (d) { lines.push('wiki: ' + d); });
+      }
+      resultEl.textContent = lines.join('\n');
+      last = { kind: kind, key: key, rows: agree ? rows : rows.slice(0, 0) };
+      setStatus(rows.length === 0 ? 'Dry run complete. There is nothing to do.' :
+        (agree ? 'Dry run complete. You can now apply it.' : 'Dry run complete, but the wiki disagrees on some pages. Apply stays disabled, review the details and run it again.'));
+    } catch (e) {
+      setStatus('Failed: ' + e.message);
+    }
+    busy = false; updateButtons();
+  }
+
+  async function apply(kind) {
+    if (!last || last.kind !== kind || last.key !== configKey()) { return; }
+    var rows = last.rows;
+    var text = kind === 'migrate'
+      ? 'Write sensitivity values to ' + rows.length + ' pages? Pages that already have values are not touched.'
+      : 'Remove the old macro from ' + rows.length + ' pages? It is only removed where the stored values match it. Page history keeps the old source.';
+    if (!window.confirm(text)) { return; }
+    busy = true; updateButtons(); resultEl.textContent = '';
+    var totals = {};
+    var problems = [];
+    var op = kind === 'migrate' ? 'apply' : 'clean';
+    var size = kind === 'migrate' ? APPLY_CHUNK : CLEAN_CHUNK;
+    try {
+      for (var i = 0; i &lt; rows.length; i += size) {
+        var res = await post(op, { mode: 'apply', rows: JSON.stringify(rows.slice(i, i + size)) });
+        Object.keys(res.counts).forEach(function (k) { add(totals, k, res.counts[k]); });
+        res.problems.forEach(function (p) { if (problems.length &lt; 100) { problems.push(p.result + ': ' + p.page); } });
+        setStatus('Applying: ' + Math.min(i + size, rows.length) + ' of ' + rows.length);
+      }
+      var lines = ['FINISHED (' + (kind === 'migrate' ? 'migration' : 'macro removal') + ')', 'Pages changed: ' + (totals.applied || 0) + ' of ' + rows.length];
+      Object.keys(totals).forEach(function (k) { if (k !== 'applied' &amp;&amp; k !== 'ready' &amp;&amp; k !== 'removable' &amp;&amp; totals[k]) { lines.push('Skipped, ' + k + ': ' + totals[k]); } });
+      if (problems.length) { lines.push('', 'Details:'); problems.forEach(function (p) { lines.push(p); }); }
+      resultEl.textContent = lines.join('\n');
+      setStatus('Finished. Run the dry run again to see what is left.');
+    } catch (e) {
+      setStatus('Failed: ' + e.message + '. Some pages may already have been changed. Run the dry run again to see the current state.');
+    }
+    last = null; busy = false; updateButtons();
+  }
+
+  buttons.scanM.addEventListener('click', function () { scan('migrate'); });
+  buttons.scanC.addEventListener('click', function () { scan('clean'); });
+  buttons.applyM.addEventListener('click', function () { apply('migrate'); });
+  buttons.applyC.addEventListener('click', function () { apply('clean'); });
+  // Any change to a setting throws the dry run away, so the next apply always follows a dry run of the same settings.
+  Object.keys(inputs).forEach(function (k) {
+    inputs[k].addEventListener('input', function () {
+      if (last !== null &amp;&amp; !busy) { last = null; setStatus('Settings changed. Run the dry run again before applying.'); }
+      updateButtons();
+    });
+  });
+  updateButtons();
+})();
+
+&lt;/script&gt;
+{{/html}}</content>
+</xwikidoc>
