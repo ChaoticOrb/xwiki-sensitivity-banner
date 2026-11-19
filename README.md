@@ -8,6 +8,12 @@ Adds a banner to the top of pages and blog posts showing Owner, Security and Cou
 
 This produces `target/xwiki-sensitivity-banner-<version>.xar`. The `xwiki.version` property in `pom.xml` selects the XAR tooling version (currently 17.4.0, matching the test instance). Set it to your XWiki version.
 
+To build without Maven, use only Python 3:
+
+    python3 tools/build-xar.py
+
+This writes the same file to `target/`. The pages inside are byte for byte identical to the Maven build, and the same sources always give the same file. It needs no downloads. It does not run the checks, which are described in `tools/README.md`.
+
 ## Install
 
 Upload the XAR in Extension Manager (Administer Wiki, Extensions, Advanced Search, or Import in the wiki administration) and install it on the wiki. Install as an admin, because the banner pages contain Velocity.

@@ -2,6 +2,12 @@
 
 Run both before releasing. Neither needs a running XWiki.
 
+## Building without Maven
+
+    python3 tools/build-xar.py [OUTPUT.xar]
+
+Builds the XAR from `src/main/resources` using only the Python standard library, with the name, description and version taken from `pom.xml`. A XAR is a zip of the page XML files plus a `package.xml` that lists them. The output matches the Maven build, page for page, and is reproducible.
+
 ## Class contract check
 
     python3 tools/check-class-contract.py

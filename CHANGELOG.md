@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added `tools/build-xar.py`, which builds the XAR with Python only, no Maven. Its pages are byte for byte identical to the Maven build.
+
 - Removed the Sensitivity Report admin section (table of pages, missing pages list, retired values list). It is not needed for migration. The Sensitivity Banner settings, Sensitivity Backup section, tab and banner are unchanged.
 - Added the Sensitivity Migration admin section: a one time transfer of Owner, Security and Country from the old Confluence `sensitivity` user macro, in two steps (copy the values, then remove the macro), each with a dry run first. See `docs/MIGRATION.md`.
 - Hardened the handlers so a page without a sensitivity object is never confused with the previous page in a batch, whatever the Velocity null assignment setting.
