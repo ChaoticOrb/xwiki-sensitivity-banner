@@ -12,22 +12,36 @@ The migration uses only the sensitivity class and the shared `Common` page of th
 
 ## What it expects
 
-The pages arrive in XWiki through Confluence Migrator Pro. How Migrator Pro writes a custom user macro into the page source was not verified, because no migrated page was available when this was built. The scan therefore accepts these forms, and the macro name and the three parameter names can be changed on the screen before a run:
+The pages arrive in XWiki through Confluence Migrator Pro. A migrated page was checked and the macro comes through as `{{confluence_sensitivity Sensitivity="Value" Security="Value" Country="Value" /}}`, with three parameters on one call. That is the main form. The other forms are accepted as well, and the macro name and the parameter names can be changed on the screen:
 
 | Form in the page source | Example |
 |---|---|
+| **Migrator Pro output** | `{{confluence_sensitivity Sensitivity="Management" Security="Sensitive" Country="UK" /}}` |
 | XWiki macro | `{{sensitivity owner="Management" security="Sensitive" country="UK"/}}` |
 | XWiki macro with the bridge prefix | `{{confluence_sensitivity owner="Management" .../}}` |
 | XWiki macro with a body | `{{sensitivity owner="Management"}}anything{{/sensitivity}}` (the body is ignored) |
 | Literal Confluence markup | `{sensitivity:owner=Management\|security=Sensitive\|country=UK}` |
 
-Parameter names are not case sensitive. Only parameters on the macro call can be read. A Confluence export holds the macro call, not the HTML the macro renders, so extra HTML emitted by the old macro does not reach XWiki. If any page in Confluence takes its values from page properties or labels instead of macro parameters, add explicit parameters to those pages before exporting.
+Parameter names are not case sensitive, and a space before the closing slash makes no difference. Only parameters on the macro call can be read. A Confluence export holds the macro call, not the HTML the macro renders, so extra HTML emitted by the old macro does not reach XWiki. If any page in Confluence takes its values from page properties or labels instead of macro parameters, add explicit parameters to those pages before exporting.
+
+## Mapping the parameters to the fields
+
+The screen has one box per field, Owner, Security and Country, for the name of the parameter that carries it. A box takes one name or several separated by commas, for example `owner, sensitivity`. The defaults are `owner`, `security` and `country`.
+
+The old macro's parameters are `Sensitivity`, `Security` and `Country`, and the new fields are Owner, Security and Country. By elimination `Sensitivity` is the one that carries the Owner, so type `Sensitivity` into the Owner box. **This was inferred, not confirmed.** A wrong guess is caught because every value must match the field's own option list: if `Sensitivity` actually held Security style values such as `Sensitive`, they would not be in the Owner list, and those pages would be skipped and listed instead of written.
+
+The dry run helps you get this right:
+
+- It lists every parameter name it found on the macro, with how many macros carry it.
+- It warns about each name that is not mapped to any field and is therefore ignored. With the default boxes and the real macro, you would see a warning for `sensitivity`.
+- It shows, for the pages it could process, how many would have no value for each field. A mapping mistake shows up there as a large number for one field.
+- The apply confirmation repeats which parameters are being ignored.
 
 ## Before you start
 
 1. Take a snapshot or backup of the wiki.
 2. Download a Sensitivity Backup file if any pages already have values.
-3. Try it on a small test space first. Expect to adjust the macro or parameter names after the first dry run.
+3. Try it on a small test space first. Expect to adjust the parameter boxes after the first dry run.
 
 ## Step 1: copy the values
 

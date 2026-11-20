@@ -27,15 +27,16 @@
 This is a one time transfer of the sensitivity values from the old Confluence user macro into the new Owner, Security and Country fields. It has two separate steps. **Take a backup of the wiki first**, and download a Sensitivity Backup file if pages already have values.
 
 {{html clean="false"}}
-&lt;p&gt;The old macro is expected to appear in the page source as &lt;code&gt;{{sensitivity owner="..." security="..." country="..."/}}&lt;/code&gt;, with or without a &lt;code&gt;confluence_&lt;/code&gt; prefix, or as the literal Confluence markup &lt;code&gt;{sensitivity:owner=...|security=...|country=...}&lt;/code&gt;. Parameter names are not case sensitive. If your pages use different names, change them below before running.&lt;/p&gt;
+&lt;p&gt;The old macro is read from the page source in these forms, with or without a &lt;code&gt;confluence_&lt;/code&gt; prefix: &lt;code&gt;{{confluence_sensitivity Sensitivity="..." Security="..." Country="..." /}}&lt;/code&gt;, or the literal Confluence markup &lt;code&gt;{sensitivity:Sensitivity=...|Security=...|Country=...}&lt;/code&gt;. Parameter names are not case sensitive.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Map each parameter to a field below.&lt;/strong&gt; Type the name the old macro uses for each field. If a field might use more than one name, separate them with commas, for example &lt;code&gt;owner, sensitivity&lt;/code&gt;. Parameters that are not mapped to any field are ignored, and the dry run lists them as a warning so nothing is skipped by accident.&lt;/p&gt;
 &lt;div id="sb-mg"
   data-url="$escapetool.xml($xwiki.getURL('SensitivityMigration.Code.Handler', 'get', 'outputSyntax=plain'))"
   data-token="$!escapetool.xml($services.csrf.token)"&gt;
   &lt;table class="table" style="max-width:40em;"&gt;
     &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-macro"&gt;Macro name&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-macro" value="sensitivity" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
-    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-owner"&gt;Parameter for Owner&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-owner" value="owner" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
-    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-security"&gt;Parameter for Security&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-security" value="security" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
-    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-country"&gt;Parameter for Country&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-country" value="country" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-owner"&gt;Parameter name(s) for Owner&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-owner" value="owner" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-security"&gt;Parameter name(s) for Security&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-security" value="security" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-country"&gt;Parameter name(s) for Country&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-country" value="country" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
   &lt;/table&gt;
 &lt;/div&gt;
 {{/html}}
@@ -143,13 +144,30 @@ Run this only after you have checked that the values look right on your pages. I
     return found;
   }
 
+  // The parameter names for a field: a list, or a comma separated text, always lower case. Falls back to the field name.
+  function nameList(value, fallback) {
+    var raw = Array.isArray(value) ? value : String(value === undefined || value === null ? '' : value).split(',');
+    var out = [];
+    raw.forEach(function (x) {
+      x = collapse(x).toLowerCase();
+      if (x !== '' &amp;&amp; out.indexOf(x) === -1) { out.push(x); }
+    });
+    return out.length ? out : [fallback];
+  }
+
+  function aliasesFor(cfg, field) {
+    return nameList(cfg.names &amp;&amp; cfg.names[field], field);
+  }
+
+  // The first alias that has a value wins.
   function fieldValues(macro, cfg) {
     var values = {};
     var any = false;
     FIELDS.forEach(function (f) {
-      var key = String((cfg.names &amp;&amp; cfg.names[f]) || f).toLowerCase();
-      var v = macro.params[key];
-      v = collapse(decodeEntities(v === undefined ? '' : v));
+      var v = '';
+      aliasesFor(cfg, f).forEach(function (key) {
+        if (v === '' &amp;&amp; macro.params[key] !== undefined) { v = collapse(decodeEntities(macro.params[key])); }
+      });
       values[f] = v;
       if (v !== '') { any = true; }
     });
@@ -181,6 +199,20 @@ Run this only after you have checked that the values look right on your pages. I
   function analyze(content, cfg, options) {
     var macros = findMacros(content, cfg);
     if (!macros.length) { return { status: 'nomacro' }; }
+    var names = {};
+    macros.forEach(function (m) {
+      Object.keys(m.params).forEach(function (k) { names[k] = (names[k] || 0) + 1; });
+    });
+    var known = {};
+    FIELDS.forEach(function (f) { aliasesFor(cfg, f).forEach(function (k) { known[k] = true; }); });
+    var unmapped = Object.keys(names).filter(function (k) { return !known[k]; });
+    var result = analyzeValues(content, cfg, options, macros);
+    result.names = names;
+    result.unmapped = unmapped;
+    return result;
+  }
+
+  function analyzeValues(content, cfg, options, macros) {
     var valued = [];
     macros.forEach(function (m) {
       var fv = fieldValues(m, cfg);
@@ -241,6 +273,7 @@ Run this only after you have checked that the values look right on your pages. I
     planCleanup: planCleanup,
     parseXWikiParams: parseXWikiParams,
     parseConfluenceParams: parseConfluenceParams,
+    nameList: nameList,
     removalString: removalString
   };
 
@@ -266,10 +299,11 @@ Run this only after you have checked that the values look right on your pages. I
     if (!/^[A-Za-z0-9_]{1,40}$/.test(macro)) { throw new Error('The macro name may only contain letters, digits and underscores'); }
     var names = {};
     FIELDS.forEach(function (f) {
-      var v = collapse(inputs[f].value);
-      if (v === '') { v = f; }
-      if (!/^[A-Za-z0-9_-]{1,40}$/.test(v)) { throw new Error('The parameter name for ' + f + ' may only contain letters, digits, underscores and hyphens'); }
-      names[f] = v;
+      var parts = nameList(inputs[f].value, f);
+      parts.forEach(function (part) {
+        if (!/^[A-Za-z0-9_-]{1,40}$/.test(part)) { throw new Error('The parameter names for ' + f + ' may only contain letters, digits, underscores and hyphens, separated by commas'); }
+      });
+      names[f] = parts;
     });
     return { macro: macro, names: names };
   }
@@ -352,10 +386,16 @@ Run this only after you have checked that the values look right on your pages. I
       var tally = { pages: names.length };
       var rows = [];
       var details = [];
+      var paramSeen = {};
+      var paramUnmapped = {};
       for (var i = 0; i &lt; names.length; i += PAGE_CHUNK) {
         var data = await post('content', { names: JSON.stringify(names.slice(i, i + PAGE_CHUNK)) });
         data.pages.forEach(function (p) {
           var a = analyze(p.content, cfg, conf.options);
+          if (a.names) {
+            Object.keys(a.names).forEach(function (k) { add(paramSeen, k, a.names[k]); });
+            a.unmapped.forEach(function (k) { add(paramUnmapped, k, a.names[k]); });
+          }
           var plan = kind === 'migrate' ? planMigration(p, a) : planCleanup(p, a);
           add(tally, plan.outcome);
           if (plan.row) { rows.push(plan.row); }
@@ -378,6 +418,21 @@ Run this only after you have checked that the values look right on your pages. I
       var labels = kind === 'migrate' ? MIGRATE_LABELS : CLEAN_LABELS;
       var lines = ['DRY RUN, nothing was changed (' + (kind === 'migrate' ? 'migration' : 'macro removal') + ')'];
       labels.forEach(function (l) { lines.push(l[1] + ': ' + (tally[l[0]] || 0)); });
+      var seenKeys = Object.keys(paramSeen).sort();
+      if (seenKeys.length) {
+        lines.push('Parameter names found on the macro: ' + seenKeys.map(function (k) { return k + ' (' + paramSeen[k] + ')'; }).join(', '));
+      }
+      var unmappedKeys = Object.keys(paramUnmapped).sort();
+      if (unmappedKeys.length) {
+        lines.push('WARNING, not mapped to any field and ignored: ' + unmappedKeys.map(function (k) { return k + ' (' + paramUnmapped[k] + ')'; }).join(', ') +
+          '. If they hold values you need, type the name into the matching parameter box above and run the dry run again.');
+      }
+      if (rows.length) {
+        var gaps = FIELDS.map(function (f) {
+          return f + ': ' + rows.filter(function (r) { return !r[f]; }).length;
+        });
+        lines.push('Of the ' + rows.length + ' pages that can be processed, how many have no value for each field: ' + gaps.join(', '));
+      }
       lines.push('The wiki agrees on ' + (server[okKey] || 0) + ' of ' + rows.length + ' pages' + (agree ? '' : ', check the details below before applying'));
       if (details.length || serverProblems.length) {
         lines.push('', 'Details (first ' + (details.length + serverProblems.length) + '):');
@@ -385,7 +440,7 @@ Run this only after you have checked that the values look right on your pages. I
         serverProblems.forEach(function (d) { lines.push('wiki: ' + d); });
       }
       resultEl.textContent = lines.join('\n');
-      last = { kind: kind, key: key, rows: agree ? rows : rows.slice(0, 0) };
+      last = { kind: kind, key: key, rows: agree ? rows : rows.slice(0, 0), unmapped: unmappedKeys };
       setStatus(rows.length === 0 ? 'Dry run complete. There is nothing to do.' :
         (agree ? 'Dry run complete. You can now apply it.' : 'Dry run complete, but the wiki disagrees on some pages. Apply stays disabled, review the details and run it again.'));
     } catch (e) {
@@ -400,6 +455,9 @@ Run this only after you have checked that the values look right on your pages. I
     var text = kind === 'migrate'
       ? 'Write sensitivity values to ' + rows.length + ' pages? Pages that already have values are not touched.'
       : 'Remove the old macro from ' + rows.length + ' pages? It is only removed where the stored values match it. Page history keeps the old source.';
+    if (last.unmapped &amp;&amp; last.unmapped.length) {
+      text += ' These macro parameters are being ignored: ' + last.unmapped.join(', ') + '.';
+    }
     if (!window.confirm(text)) { return; }
     busy = true; updateButtons(); resultEl.textContent = '';
     var totals = {};

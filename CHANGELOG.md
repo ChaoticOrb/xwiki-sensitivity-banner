@@ -12,6 +12,7 @@
 ### Sensitivity Migration (new, separate extension, 0.1.0)
 
 - A temporary tool, in its own XAR and its own `SensitivityMigration` space, for the one time transfer of Owner, Security and Country from the old Confluence `sensitivity` user macro, in two steps (copy the values, then remove the macro), each with a dry run first. See `docs/MIGRATION.md`.
+- Reads the macro as Migrator Pro writes it, `{{confluence_sensitivity Sensitivity="..." Security="..." Country="..." /}}`. Each field has a box for the parameter name or names that carry it, separated by commas. The dry run lists the parameter names it found, warns about names that are not mapped to any field, and shows how many pages would have no value for each field.
 - Needs the Sensitivity Banner installed and says so when it is missing. It uses only the sensitivity class and the shared `Common` page, and `tools/check-class-contract.py` enforces that.
 - Remove it when the migration is finished by deleting the `SensitivityMigration` space. Stored sensitivity values are not affected.
 

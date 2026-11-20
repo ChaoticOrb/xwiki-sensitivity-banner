@@ -121,6 +121,19 @@ function makeStore() {
   check((await core('removalString', 'before\n{{sensitivity owner="Management"/}}\nafter', { start: 7, end: 7 + '{{sensitivity owner="Management"/}}'.length })) === '{{sensitivity owner="Management"/}}\n', 'a macro alone on its line is removed with its line break');
   check((await core('removalString', 'inline {{sensitivity owner="Management"/}} text', { start: 7, end: 7 + '{{sensitivity owner="Management"/}}'.length })) === '{{sensitivity owner="Management"/}}', 'an inline macro leaves the surrounding text and spacing alone');
 
+  // ---- the real macro format: one call with Sensitivity, Security and Country
+  const realCfg = { macro: 'sensitivity', names: { owner: 'Sensitivity', security: 'Security', country: 'Country' } };
+  const real = '{{confluence_sensitivity Sensitivity="Standard Staff" Security="Open" Country="UK" /}}\n\nBody';
+  a = await an(real, realCfg);
+  check(a.status === 'parsed' && a.values.owner === 'Standard Staff' && a.values.security === 'Open' && a.values.country === 'UK', 'the real format (capitalised names, space before the closing slash) is parsed when Owner is mapped to Sensitivity');
+  check(a.removals[0] === '{{confluence_sensitivity Sensitivity="Standard Staff" Security="Open" Country="UK" /}}\n', 'its removal text includes the space before the slash and the line break');
+  a = await an(real);
+  check(a.status === 'parsed' && a.values.owner === '' && a.values.security === 'Open' && a.values.country === 'UK' && a.unmapped.length === 1 && a.unmapped[0] === 'sensitivity', 'with the default names Owner is not read and the unused Sensitivity parameter is reported as unmapped');
+  check(JSON.stringify(await core('nameList', 'Owner, , Sensitivity ,owner', 'owner')) === '["owner","sensitivity"]', 'a field accepts several comma separated names, lower cased, without duplicates');
+  const aliasCfg = { macro: 'sensitivity', names: { owner: 'owner, sensitivity', security: 'security', country: 'country' } };
+  check((await an('{{sensitivity Owner="Management" /}}', aliasCfg)).values.owner === 'Management' && (await an('{{sensitivity Sensitivity="Standard Staff" /}}', aliasCfg)).values.owner === 'Standard Staff', 'either alias supplies the value');
+  check((await an('{{sensitivity Owner="Management" /}} {{sensitivity Sensitivity="Standard Staff" /}}', aliasCfg)).status === 'conflict', 'two macros that disagree through different aliases are still a conflict');
+
   // ---- UI flow
   const status = () => page.textContent('#sb-mg-status');
   const result = () => page.textContent('#sb-mg-result');
@@ -187,6 +200,43 @@ function makeStore() {
   check(store['Space.B'].content === 'Body B' && store['Space.C'].content === 'Body C' && store['Space.J'].content === 'Body J' && store['Space.G'].content === 'Body G', 'pages B, C, J and G lost only the macro');
   check(store['Space.D'].content.includes('Interns') && store['Space.E'].content.includes('Standard Staff') && store['Space.H'].content.includes('{{sensitivity') && store['Space.I'].content.includes('{{sensitivity'), 'skipped pages keep their macros');
   check(store['Space.F'].content === 'Our sensitivity analysis is a different topic.', 'a page that only mentions the word is never edited');
+
+  // ---- phase 2: the real macro format end to end, default settings first, then Owner mapped to Sensitivity
+  for (const k of Object.keys(store)) delete store[k];
+  store['Real.R1'] = { content: '{{confluence_sensitivity Sensitivity="Management" Security="Sensitive" Country="UK" /}}\nBody R1', values: blank(), canEdit: true };
+  store['Real.R2'] = { content: '{{confluence_sensitivity Sensitivity="standard staff" Security="Open" Country="Europe" /}}\nBody R2', values: blank(), canEdit: true };
+  store['Real.R3'] = { content: '{{confluence_sensitivity Sensitivity="Value" Security="Open" Country="UK" /}}\nBody R3', values: blank(), canEdit: true };
+  await page.fill('#sb-mg-owner', 'owner');
+  await page.click('#sb-mg-scan-m');
+  await page.waitForFunction(() => document.getElementById('sb-mg-status').textContent.includes('Dry run complete'));
+  txt = await result();
+  check(/Parameter names found on the macro: country \(3\), security \(3\), sensitivity \(3\)/.test(txt), 'the dry run lists the parameter names it found: ' + (txt.match(/Parameter names found[^\n]*/) || [''])[0]);
+  check(/WARNING, not mapped to any field and ignored: sensitivity \(3\)/.test(txt), 'the dry run warns that Sensitivity is not mapped to any field');
+  check(/no value for each field: owner: 3, security: 0, country: 0/.test(txt), 'the dry run shows that every page would be left without an Owner: ' + (txt.match(/Of the [^\n]*/) || [''])[0]);
+  page.once('dialog', d => { check(/ignored: sensitivity/.test(d.message()), 'the apply confirmation repeats which parameters are ignored'); d.dismiss(); });
+  await page.click('#sb-mg-apply-m');
+  await page.waitForTimeout(300);
+  check(!store['Real.R1'].values.security, 'nothing was written while the warning stood and the confirmation was declined');
+  await page.fill('#sb-mg-owner', 'Sensitivity');
+  check(/Settings changed/.test(await status()) && await dis('#sb-mg-apply-m'), 'changing the Owner box discards the dry run');
+  await page.click('#sb-mg-scan-m');
+  await page.waitForFunction(() => document.getElementById('sb-mg-status').textContent.includes('Dry run complete'));
+  txt = await result();
+  check(!/WARNING/.test(txt) && /Ready to migrate: 2/.test(txt) && /not in your lists, skipped: 1/.test(txt) && /owner="Value"/.test(txt), 'with Owner mapped there is no warning, 2 pages are ready and the page with the unknown Owner value is listed and skipped');
+  page.once('dialog', d => d.accept());
+  await page.click('#sb-mg-apply-m');
+  await page.waitForFunction(() => document.getElementById('sb-mg-status').textContent.includes('Finished'));
+  check(store['Real.R1'].values.owner === 'Management' && store['Real.R1'].values.security === 'Sensitive' && store['Real.R1'].values.country === 'UK', 'R1 has all three values');
+  check(store['Real.R2'].values.owner === 'Standard Staff' && store['Real.R2'].values.security === 'Open' && store['Real.R2'].values.country === 'Europe', 'R2 has all three values, with the Owner stored as the configured option text');
+  check(!store['Real.R3'].values.owner && !store['Real.R3'].values.security, 'R3, whose Owner value is not in the lists, was left alone completely');
+  await page.click('#sb-mg-scan-c');
+  await page.waitForFunction(() => document.getElementById('sb-mg-status').textContent.includes('Dry run complete'));
+  check(/Macro can be removed: 2/.test(await result()), 'the removal dry run finds the 2 migrated pages');
+  page.once('dialog', d => d.accept());
+  await page.click('#sb-mg-apply-c');
+  await page.waitForFunction(() => document.getElementById('sb-mg-status').textContent.includes('Finished'));
+  check(store['Real.R1'].content === 'Body R1' && store['Real.R2'].content === 'Body R2', 'the real format macros are removed completely, including the space before the slash and the line break');
+  check(store['Real.R3'].content.includes('Sensitivity="Value"'), 'R3 keeps its macro');
 
   await browser.close();
   console.log(failures === 0 ? '\nALL PASSED' : '\n' + failures + ' FAILURE(S)');
