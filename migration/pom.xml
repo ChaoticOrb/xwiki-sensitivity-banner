@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.xwiki.contrib</groupId>
+  <artifactId>xwiki-sensitivity-migration</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>xar</packaging>
+  <name>Sensitivity Migration</name>
+  <description>Temporary tool for the one time transfer of sensitivity values from the old Confluence macro into the Sensitivity Banner fields. Remove it when the migration is finished.</description>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <properties>
+    <!-- Version of the XWiki commons XAR tooling. Set to match the XWiki version you deploy to. -->
+    <xwiki.version>17.4.0</xwiki.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <xwiki.extension.name>Sensitivity Migration</xwiki.extension.name>
+    <xwiki.extension.category>application</xwiki.extension.category>
+    <xwiki.extension.features>org.xwiki.contrib:xwiki-sensitivity-migration</xwiki.extension.features>
+  </properties>
+
+  <!--
+    This extension needs the Sensitivity Banner extension (xwiki-sensitivity-banner) installed first.
+    It is not declared as a Maven dependency because the banner is imported from a file, not resolved from
+    a repository. The migration screen checks for it and says so when it is missing.
+  -->
+
+  <build>
+    <extensions>
+      <!-- Registers the "xar" packaging lifecycle. -->
+      <extension>
+        <groupId>org.xwiki.commons</groupId>
+        <artifactId>xwiki-commons-tool-xar-handlers</artifactId>
+        <version>${xwiki.version}</version>
+      </extension>
+    </extensions>
+    <plugins>
+      <plugin>
+        <groupId>org.xwiki.commons</groupId>
+        <artifactId>xwiki-commons-tool-xar-plugin</artifactId>
+        <version>${xwiki.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,13 +1,13 @@
 <?xml version="1.1" encoding="UTF-8"?>
 
-<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateSheet" locale="">
-  <web>SensitivityBanner.Code</web>
-  <name>MigrateSheet</name>
+<xwikidoc version="1.6" reference="SensitivityMigration.Code.Sheet" locale="">
+  <web>SensitivityMigration.Code</web>
+  <name>Sheet</name>
   <language/>
   <defaultLanguage/>
   <translation>0</translation>
   <creator>xwiki:XWiki.Admin</creator>
-  <parent>SensitivityBanner.WebHome</parent>
+  <parent>SensitivityMigration.WebHome</parent>
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <version>1.1</version>
@@ -19,12 +19,17 @@
   <content>{{include reference="SensitivityBanner.Code.Common" /}}
 
 {{velocity}}
+#if (!$xwiki.exists('SensitivityBanner.Code.Common'))
+{{error}}The Sensitivity Banner extension is not installed, and this migration tool needs it. Import the Sensitivity Banner XAR first.{{/error}}
+#else
+**This is a temporary tool.** When the migration is finished, delete the SensitivityMigration space to remove it. Sensitivity values already stored on pages are not affected by that.
+
 This is a one time transfer of the sensitivity values from the old Confluence user macro into the new Owner, Security and Country fields. It has two separate steps. **Take a backup of the wiki first**, and download a Sensitivity Backup file if pages already have values.
 
 {{html clean="false"}}
 &lt;p&gt;The old macro is expected to appear in the page source as &lt;code&gt;{{sensitivity owner="..." security="..." country="..."/}}&lt;/code&gt;, with or without a &lt;code&gt;confluence_&lt;/code&gt; prefix, or as the literal Confluence markup &lt;code&gt;{sensitivity:owner=...|security=...|country=...}&lt;/code&gt;. Parameter names are not case sensitive. If your pages use different names, change them below before running.&lt;/p&gt;
 &lt;div id="sb-mg"
-  data-url="$escapetool.xml($xwiki.getURL('SensitivityBanner.Code.MigrateHandler', 'get', 'outputSyntax=plain'))"
+  data-url="$escapetool.xml($xwiki.getURL('SensitivityMigration.Code.Handler', 'get', 'outputSyntax=plain'))"
   data-token="$!escapetool.xml($services.csrf.token)"&gt;
   &lt;table class="table" style="max-width:40em;"&gt;
     &lt;tr&gt;&lt;td&gt;&lt;label for="sb-mg-macro"&gt;Macro name&lt;/label&gt;&lt;/td&gt;&lt;td&gt;&lt;input type="text" id="sb-mg-macro" value="sensitivity" size="24" /&gt;&lt;/td&gt;&lt;/tr&gt;
@@ -58,6 +63,7 @@ Run this only after you have checked that the values look right on your pages. I
 &lt;p id="sb-mg-status" role="status"&gt;&lt;/p&gt;
 &lt;pre id="sb-mg-result" style="max-height:24em;overflow:auto;"&gt;&lt;/pre&gt;
 {{/html}}
+#end
 {{/velocity}}
 
 {{html clean="false"}}

@@ -1,13 +1,13 @@
 <?xml version="1.1" encoding="UTF-8"?>
 
-<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateAdmin" locale="">
-  <web>SensitivityBanner.Code</web>
-  <name>MigrateAdmin</name>
+<xwikidoc version="1.6" reference="SensitivityMigration.Code.Admin" locale="">
+  <web>SensitivityMigration.Code</web>
+  <name>Admin</name>
   <language/>
   <defaultLanguage/>
   <translation>0</translation>
   <creator>xwiki:XWiki.Admin</creator>
-  <parent>SensitivityBanner.WebHome</parent>
+  <parent>SensitivityMigration.WebHome</parent>
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <version>1.1</version>
@@ -18,10 +18,10 @@
   <hidden>true</hidden>
   <content>Administration section for the one time transfer of values from the old Confluence macro.</content>
   <object>
-    <name>SensitivityBanner.Code.MigrateAdmin</name>
+    <name>SensitivityMigration.Code.Admin</name>
     <number>0</number>
     <className>XWiki.ConfigurableClass</className>
-    <guid>fdbc64df-a8f0-5c8d-a351-65b1e550ec17</guid>
+    <guid>6d274e06-9783-5021-9bac-63030f14bdb2</guid>
     <class>
       <name>XWiki.ConfigurableClass</name>
       <customClass/>
@@ -240,7 +240,7 @@
       </sectionOrder>
     </class>
     <property>
-      <codeToExecute>{{include reference="SensitivityBanner.Code.MigrateSheet"/}}</codeToExecute>
+      <codeToExecute>{{include reference="SensitivityMigration.Code.Sheet"/}}</codeToExecute>
     </property>
     <property>
       <displayInSection>Sensitivity Migration</displayInSection>

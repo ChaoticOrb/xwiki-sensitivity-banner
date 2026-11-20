@@ -40,7 +40,7 @@ Each page holds its own object of class `SensitivityBanner.Code.SensitivityClass
 
 ## Migration writes
 
-The Sensitivity Migration section writes values to pages and can remove the old macro from page source. Both steps start with a dry run, only touch pages that pass the same checks as a normal save, never overwrite existing values, and leave a page version for every change. Take a backup of the wiki and download a Sensitivity Backup file before running it. Removal is the only step that edits page content, so it only acts where the stored values already match the macro.
+The Sensitivity Migration tool (a separate, temporary extension) writes values to pages and can remove the old macro from page source. Both steps start with a dry run, only touch pages that pass the same checks as a normal save, never overwrite existing values, and leave a page version for every change. Take a backup of the wiki and download a Sensitivity Backup file before running it. Removal is the only step that edits page content, so it only acts where the stored values already match the macro.
 
 ## Rules for future changes
 

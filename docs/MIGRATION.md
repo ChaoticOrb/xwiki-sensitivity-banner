@@ -1,6 +1,14 @@
 # Migrating the Confluence sensitivity macro
 
-One time transfer of the values from the old Confluence user macro into the Owner, Security and Country fields, in two separate steps. Administration, Content, Sensitivity Migration.
+One time transfer of the values from the old Confluence user macro into the Owner, Security and Country fields, in two separate steps. This is a separate, temporary extension, **Sensitivity Migration**, built from `migration/`. Import it for the migration and delete it afterwards. It appears under Administration, Content, Sensitivity Migration.
+
+## Installing and removing it
+
+1. Install the Sensitivity Banner first. The migration screen shows an error and no buttons if it is missing.
+2. Import the migration XAR (`xwiki-sensitivity-migration-<version>.xar`) as an admin.
+3. When the migration is finished and checked, delete the `SensitivityMigration` space: open its home page and delete it including its child pages. The section disappears from the administration. The sensitivity values already stored on pages are not affected, so download a Sensitivity Backup file before and after and compare its `count` if you want proof.
+
+The migration uses only the sensitivity class and the shared `Common` page of the banner. `tools/check-class-contract.py` checks that.
 
 ## What it expects
 

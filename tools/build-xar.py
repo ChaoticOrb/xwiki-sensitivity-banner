@@ -5,9 +5,11 @@ A XAR is a zip file holding the page XML files and a package.xml that lists the 
 This script produces the same layout as the Maven build: every page under
 src/main/resources at its relative path, then package.xml.
 
-Usage: python3 tools/build-xar.py [OUTPUT.xar]
-Default output: target/xwiki-sensitivity-banner-<version>.xar
-The name, description and version come from pom.xml.
+Usage: python3 tools/build-xar.py [MODULE_DIR] [OUTPUT.xar]
+MODULE_DIR is the folder holding pom.xml and src/main/resources. It defaults to the repository root,
+which is the Sensitivity Banner. Use "migration" for the Sensitivity Migration tool.
+Default output: MODULE_DIR/target/<artifactId>-<version>.xar
+The name, description and version come from that module's pom.xml.
 """
 import os
 import sys
@@ -15,8 +17,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RESOURCES = os.path.join(ROOT, "src", "main", "resources")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 
 
@@ -28,7 +29,17 @@ def pom_value(pom, tag):
 
 
 def main():
-    pom = ET.parse(os.path.join(ROOT, "pom.xml"))
+    module = REPO
+    output = None
+    for arg in sys.argv[1:]:
+        if os.path.isdir(arg):
+            module = os.path.abspath(arg)
+        else:
+            output = arg
+    resources = os.path.join(module, "src", "main", "resources")
+    if not os.path.isfile(os.path.join(module, "pom.xml")):
+        sys.exit("No pom.xml in " + module)
+    pom = ET.parse(os.path.join(module, "pom.xml"))
     name = pom_value(pom, "name")
     description = pom_value(pom, "description")
     version = pom_value(pom, "version")
@@ -36,17 +47,17 @@ def main():
     artifact = pom_value(pom, "artifactId")
 
     pages = []
-    for folder, _, files in os.walk(RESOURCES):
+    for folder, _, files in os.walk(resources):
         for filename in files:
             if filename.endswith(".xml"):
                 path = os.path.join(folder, filename)
-                entry = os.path.relpath(path, RESOURCES).replace(os.sep, "/")
+                entry = os.path.relpath(path, resources).replace(os.sep, "/")
                 reference = ET.parse(path).getroot().get("reference")
                 if not reference:
                     sys.exit("%s has no reference attribute on <xwikidoc>" % entry)
                 pages.append((entry, path, reference))
     if not pages:
-        sys.exit("No pages found under " + RESOURCES)
+        sys.exit("No pages found under " + resources)
     pages.sort()
 
     lines = [
@@ -69,7 +80,8 @@ def main():
     lines += ["</files>", "</package>", ""]
     package_xml = "\n".join(lines)
 
-    output = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "target", "%s-%s.xar" % (artifact, version))
+    if output is None:
+        output = os.path.join(module, "target", "%s-%s.xar" % (artifact, version))
     os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
     stamp = (2026, 1, 1, 0, 0, 0)  # fixed, so the same sources always give the same file
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as xar:

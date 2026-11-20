@@ -1,13 +1,13 @@
 <?xml version="1.1" encoding="UTF-8"?>
 
-<xwikidoc version="1.6" reference="SensitivityBanner.Code.MigrateHandler" locale="">
-  <web>SensitivityBanner.Code</web>
-  <name>MigrateHandler</name>
+<xwikidoc version="1.6" reference="SensitivityMigration.Code.Handler" locale="">
+  <web>SensitivityMigration.Code</web>
+  <name>Handler</name>
   <language/>
   <defaultLanguage/>
   <translation>0</translation>
   <creator>xwiki:XWiki.Admin</creator>
-  <parent>SensitivityBanner.WebHome</parent>
+  <parent>SensitivityMigration.WebHome</parent>
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <version>1.1</version>
@@ -54,7 +54,7 @@
       $jsontool.serialize({'error': 'Invalid macro name'})
     #else
       ## Only a pre-filter: pages whose source mentions the macro name. The browser does the real parsing.
-      #set ($mgQuery = $services.query.xwql("where doc.translation = 0 and doc.content like :mg and doc.space not like 'SensitivityBanner%' order by doc.fullName"))
+      #set ($mgQuery = $services.query.xwql("where doc.translation = 0 and doc.content like :mg and doc.space not like 'SensitivityBanner%' and doc.space not like 'SensitivityMigration%' order by doc.fullName"))
       #set ($discard = $mgQuery.bindValue('mg', "%$mgMacro%"))
       #set ($mgNames = $mgQuery.setLimit(100000).execute())
       $jsontool.serialize({'total': $mgNames.size(), 'names': $mgNames})
